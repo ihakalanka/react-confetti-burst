@@ -33,3 +33,6 @@ examples/
 .cache/
 tmp/
 temp/
+
+# npm pack artifacts
+*.tgz

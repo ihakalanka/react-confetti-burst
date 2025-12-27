@@ -7,6 +7,8 @@ A high-performance, zero-dependency React confetti component with directional bu
 [![Bundle Size](https://img.shields.io/bundlephobia/minzip/react-confetti-burst)](https://bundlephobia.com/package/react-confetti-burst)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+🎮 **[Live Playground](https://ihakalanka.github.io/confetti-burst-playground/)** | 📦 **[GitHub](https://github.com/ihakalanka/react-confetti-burst)**
+
 ## Features
 
 - 🚀 **Zero dependencies** - Pure React + Canvas API
@@ -296,8 +298,8 @@ async function handleSubmit(data: FormData) {
 
 ## License
 
-MIT © [Your Name]
+MIT © [ihakalanka](https://github.com/ihakalanka)
 
 ## Contributing
 
-Contributions are welcome! Please read our contributing guidelines before submitting a PR.
+Contributions are welcome! Please read our [contributing guidelines](https://github.com/ihakalanka/react-confetti-burst/blob/main/CONTRIBUTING.md) before submitting a PR.
