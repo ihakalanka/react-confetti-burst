@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Confetti Burst Demo</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      color: white;
+    }
+    h1 { font-size: 2rem; margin-bottom: 10px; }
+    .buttons {
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    button {
+      padding: 15px 30px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: transform 0.1s, box-shadow 0.2s;
+      font-weight: 600;
+    }
+    button:hover { transform: scale(1.05); }
+    button:active { transform: scale(0.98); }
+    .burst { background: linear-gradient(135deg, #ff6b6b, #ee5a5a); color: white; }
+    .celebration { background: linear-gradient(135deg, #feca57, #ff9f43); color: #333; }
+    .firework { background: linear-gradient(135deg, #5f27cd, #341f97); color: white; }
+    .snow { background: linear-gradient(135deg, #54a0ff, #2e86de); color: white; }
+    .custom { background: linear-gradient(135deg, #1dd1a1, #10ac84); color: white; }
+    .info {
+      margin-top: 20px;
+      padding: 15px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 8px;
+      text-align: center;
+      max-width: 500px;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎉 Confetti Burst Demo</h1>
+  
+  <div class="buttons">
+    <button class="burst" id="burstBtn">Burst!</button>
+    <button class="celebration" id="celebrationBtn">Celebration</button>
+    <button class="firework" id="fireworkBtn">Firework</button>
+    <button class="snow" id="snowBtn">Snow Fall</button>
+    <button class="custom" id="customBtn">Custom</button>
+  </div>
+  
+  <div class="info">
+    <p>Click anywhere on the screen to burst confetti at that location!</p>
+  </div>
+
+  <script src="https://unpkg.com/canvas-confetti@1.9.3/dist/confetti.browser.js"></script>
+  <script>
+    // Use canvas-confetti for demo since our library requires React
+    
+    // Basic burst from center
+    document.getElementById('burstBtn').addEventListener('click', () => {
+      confetti({
+        particleCount: 100,
+        spread: 360,
+        startVelocity: 30,
+        origin: { x: 0.5, y: 0.5 },
+        colors: ['#ff6b6b', '#feca57', '#48dbfb', '#ff9ff3', '#1dd1a1'],
+        gravity: 0.8,
+        scalar: 1.2,
+        drift: 0,
+        ticks: 300
+      });
+    });
+
+    // Celebration - multiple bursts
+    document.getElementById('celebrationBtn').addEventListener('click', () => {
+      const colors = ['#ffd700', '#ff6b6b', '#48dbfb', '#ff9ff3', '#1dd1a1'];
+      
+      // Left burst
+      confetti({
+        particleCount: 50,
+        angle: 60,
+        spread: 55,
+        startVelocity: 45,
+        origin: { x: 0.2, y: 0.6 },
+        colors
+      });
+      
+      // Right burst
+      confetti({
+        particleCount: 50,
+        angle: 120,
+        spread: 55,
+        startVelocity: 45,
+        origin: { x: 0.8, y: 0.6 },
+        colors
+      });
+
+      // Center burst
+      setTimeout(() => {
+        confetti({
+          particleCount: 100,
+          spread: 100,
+          startVelocity: 50,
+          origin: { x: 0.5, y: 0.5 },
+          colors
+        });
+      }, 200);
+    });
+
+    // Firework style
+    document.getElementById('fireworkBtn').addEventListener('click', () => {
+      const colors = ['#ff0000', '#ff7700', '#ffff00', '#ffffff'];
+      
+      confetti({
+        particleCount: 100,
+        angle: 270,
+        spread: 60,
+        startVelocity: 55,
+        gravity: 1.2,
+        origin: { x: 0.5, y: 0.7 },
+        colors,
+        shapes: ['circle'],
+        scalar: 0.8
+      });
+    });
+
+    // Snow fall effect
+    document.getElementById('snowBtn').addEventListener('click', () => {
+      const colors = ['#ffffff', '#e0e0e0', '#c0c0c0', '#a8d8ff'];
+      
+      for (let i = 0; i < 5; i++) {
+        setTimeout(() => {
+          confetti({
+            particleCount: 30,
+            angle: 90,
+            spread: 120,
+            startVelocity: 15,
+            gravity: 0.4,
+            drift: 1,
+            origin: { x: Math.random(), y: -0.1 },
+            colors,
+            shapes: ['circle'],
+            scalar: 0.6,
+            ticks: 400
+          });
+        }, i * 300);
+      }
+    });
+
+    // Custom colorful burst
+    document.getElementById('customBtn').addEventListener('click', () => {
+      confetti({
+        particleCount: 150,
+        spread: 360,
+        startVelocity: 35,
+        gravity: 0.8,
+        origin: { x: 0.5, y: 0.5 },
+        colors: ['#ff0a54', '#ff477e', '#ff7096', '#ff85a1', '#fbb1bd', '#f9bec7'],
+        shapes: ['square', 'circle'],
+        scalar: 1.2,
+        ticks: 300
+      });
+    });
+
+    // Click anywhere to burst
+    document.body.addEventListener('click', (e) => {
+      if (e.target.tagName === 'BUTTON') return;
+      
+      confetti({
+        particleCount: 50,
+        spread: 360,
+        startVelocity: 25,
+        origin: { 
+          x: e.clientX / window.innerWidth, 
+          y: e.clientY / window.innerHeight 
+        },
+        colors: ['#ff6b6b', '#feca57', '#48dbfb', '#ff9ff3', '#1dd1a1']
+      });
+    });
+
+    // Initial burst on load
+    setTimeout(() => {
+      document.getElementById('burstBtn').click();
+    }, 500);
+  </script>
+</body>
+</html>

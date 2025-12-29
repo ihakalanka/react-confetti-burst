@@ -65,7 +65,7 @@ export type {
   ConfettiButtonProps,
 } from './types';
 
-// Basic Constants
+// Basic Constants (only essentials for smaller bundle)
 export {
   DEFAULT_COLORS,
   DEFAULT_PHYSICS,
@@ -74,7 +74,7 @@ export {
   DEFAULT_CONFIG,
   DIRECTION_ANGLES,
   EASING_FUNCTIONS,
-  COLOR_PALETTES,
+  // COLOR_PALETTES moved to presets for tree-shaking
 } from './constants';
 
 // Core engine (Basic)
