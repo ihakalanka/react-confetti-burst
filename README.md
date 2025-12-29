@@ -1,6 +1,6 @@
 # react-confetti-burst 🎉
 
-A high-performance, zero-dependency React confetti component with directional bursts using the native Canvas API.
+A high-performance, zero-dependency React confetti component with realistic particle physics using the native Canvas API.
 
 [![npm version](https://badge.fury.io/js/react-confetti-burst.svg)](https://badge.fury.io/js/react-confetti-burst)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0%2B-blue)](https://www.typescriptlang.org/)
@@ -13,7 +13,8 @@ A high-performance, zero-dependency React confetti component with directional bu
 
 - 🚀 **Zero dependencies** - Pure React + Canvas API
 - 🎯 **Directional bursts** - Up, down, left, right, radial, or custom angles
-- ⚡ **High performance** - Optimized canvas rendering
+- ⚡ **High performance** - Optimized canvas rendering with 60fps
+- 🎨 **Realistic physics** - Wobble, tilt, roll, and rotate effects
 - 📦 **Tiny bundle** - Minimal footprint
 - 🔷 **TypeScript first** - Full type safety built-in
 - ♿ **Accessible** - Respects `prefers-reduced-motion`
@@ -70,11 +71,33 @@ confetti();
 
 // With options
 confetti({
-  particleCount: 100,
+  particleCount: 150,
+  size: 4,
   spread: 70,
   origin: { x: 0.5, y: 0.5 }
 });
 ```
+
+## confetti() Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `particleCount` | `number` | `100` | Number of confetti particles to launch |
+| `size` | `number` | `4` | Base size of particles in pixels |
+| `angle` | `number` | `90` | Launch angle in degrees (90 = straight up) |
+| `spread` | `number` | `45` | Spread angle in degrees |
+| `startVelocity` | `number` | `45` | Initial velocity in pixels per frame |
+| `decay` | `number` | `0.94` | Speed decay factor (0-1) |
+| `gravity` | `number` | `1` | Gravity strength (1 = full, 0 = none) |
+| `drift` | `number` | `0` | Horizontal drift (-1 to 1) |
+| `ticks` | `number` | `200` | Animation duration in frames |
+| `origin` | `{ x, y }` | `{ x: 0.5, y: 0.5 }` | Origin position (0-1 coordinates) |
+| `colors` | `string[]` | Rainbow colors | Array of hex colors |
+| `shapes` | `string[]` | `['square', 'circle']` | Particle shapes |
+| `scalar` | `number` | `1` | Scale multiplier for particle size |
+| `flat` | `boolean` | `false` | Disable 3D effects (2D mode) |
+| `zIndex` | `number` | `100` | Canvas z-index |
+| `disableForReducedMotion` | `boolean` | `false` | Respect reduced motion preference |
 
 ## API Reference
 
@@ -196,10 +219,15 @@ confetti({
 
 ## Configuration Options
 
+### ConfettiBurstOptions (for React components/hooks)
+
 ```typescript
 interface ConfettiBurstOptions {
-  // Number of particles (default: 50)
+  // Number of particles (default: 100)
   particleCount?: number;
+
+  // Base particle size in pixels (default: 4)
+  size?: number;
 
   // Direction configuration
   direction?: {
@@ -229,6 +257,17 @@ interface ConfettiBurstOptions {
   onComplete?: () => void;
 }
 ```
+
+## Particle Physics
+
+The confetti engine features realistic particle physics with four independent effects:
+
+- **Wobble** - Side-to-side sway like leaves falling
+- **Tilt** - 3D rotation creating a tumbling effect
+- **Roll** - Flip animation with darkening on the back side
+- **Rotate** - 2D spin around the z-axis
+
+Set `flat: true` to disable all 3D effects for a simpler 2D animation.
 
 ## Examples
 
@@ -281,12 +320,49 @@ async function handleSubmit(data: FormData) {
   
   if (response.success) {
     confetti({
-      particleCount: 100,
+      particleCount: 150,
+      size: 5,
       spread: 70,
       origin: { x: 0.5, y: 0.6 },
     });
   }
 }
+```
+
+### Firework Effect
+
+```tsx
+import { confetti } from 'react-confetti-burst';
+
+// Built-in fireworks preset
+confetti.fireworks();
+
+// Or customize
+confetti.fireworks({
+  particleCount: 50,
+  colors: ['#ff0000', '#ffff00', '#00ff00'],
+});
+```
+
+### School Pride (Two-sided burst)
+
+```tsx
+import { confetti } from 'react-confetti-burst';
+
+confetti.schoolPride({
+  colors: ['#bb0000', '#ffffff'], // Your school colors
+});
+```
+
+### Snow Effect
+
+```tsx
+import { confetti } from 'react-confetti-burst';
+
+confetti.snow({
+  duration: 5000, // 5 seconds
+  colors: ['#ffffff', '#e0e0e0'],
+});
 ```
 
 ## Browser Support

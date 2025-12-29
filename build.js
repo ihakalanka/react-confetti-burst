@@ -40,6 +40,26 @@ async function build() {
     sourcemap: false,
   });
 
+  // Build standalone IIFE for demos (no React dependency, only confetti function)
+  await esbuild.build({
+    entryPoints: ['src/confetti.ts'],
+    bundle: true,
+    outfile: 'dist/confetti.browser.js',
+    format: 'iife',
+    globalName: 'ReactConfettiBurst',
+    target: ['es2020'],
+    treeShaking: true,
+    minify: true,
+    minifyWhitespace: true,
+    minifyIdentifiers: true,
+    minifySyntax: true,
+    keepNames: false,
+    drop: ['console', 'debugger'],
+    legalComments: 'none',
+    charset: 'utf8',
+    sourcemap: false,
+  });
+
   console.log('✅ Build complete!');
   
   // Report sizes

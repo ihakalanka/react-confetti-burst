@@ -29,6 +29,9 @@ npm-debug.log*
 # Examples (development only)
 examples/
 
+# Demo (development only)
+demo/
+
 # Misc
 .cache/
 tmp/

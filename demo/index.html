@@ -65,9 +65,10 @@
     <p>Click anywhere on the screen to burst confetti at that location!</p>
   </div>
 
-  <script src="https://unpkg.com/canvas-confetti@1.9.3/dist/confetti.browser.js"></script>
+  <script src="../dist/confetti.browser.js"></script>
   <script>
-    // Use canvas-confetti for demo since our library requires React
+    // Use react-confetti-burst's canvas-confetti compatible API
+    const { confetti } = ReactConfettiBurst;
     
     // Basic burst from center
     document.getElementById('burstBtn').addEventListener('click', () => {

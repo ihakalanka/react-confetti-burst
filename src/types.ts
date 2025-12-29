@@ -464,8 +464,10 @@ export interface AccessibilityConfig {
  * These match the API of canvas-confetti for easy migration
  */
 export interface CanvasConfettiOptions {
-  /** Number of confetti to launch. Default: 50 */
+  /** Number of confetti to launch. Default: 100 */
   readonly particleCount?: number;
+  /** Base size of particles in pixels. Default: 4 */
+  readonly size?: number;
   /** Angle to launch confetti in degrees (90 = straight up). Default: 90 */
   readonly angle?: number;
   /** Spread angle in degrees. Default: 45 */

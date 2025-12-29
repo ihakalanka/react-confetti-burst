@@ -1,6 +1,6 @@
 {
   "name": "react-confetti-burst",
-  "version": "1.0.2",
+  "version": "1.0.4",
   "description": "A high-performance, zero-dependency React confetti component with directional bursts using Canvas API",
   "main": "dist/cjs/index.js",
   "module": "dist/esm/index.js",

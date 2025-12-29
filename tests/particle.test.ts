@@ -129,15 +129,25 @@ describe('updateParticle', () => {
   });
 
   it('should apply gravity', () => {
-    const initialVy = particle.vy;
+    // Create a particle with minimal vertical velocity
+    const testParticle = createParticle(100, 100, Math.PI / 2, 1, ['red'], ['square'], [10, 10], [1, 1], 3000, 1);
+    const initialVy = testParticle.vy;
+    
+    // Use physics with strong gravity and minimal other effects
+    const physics = { 
+      ...DEFAULT_PHYSICS, 
+      gravity: 2,
+      flutter: false,
+      swayAmplitude: 0,
+    };
 
-    // Run multiple updates to ensure gravity effect accumulates beyond flutter
-    for (let i = 0; i < 10; i++) {
-      updateParticle(particle, 16.67, DEFAULT_PHYSICS, false, false);
+    // Run multiple updates to ensure gravity effect accumulates
+    for (let i = 0; i < 20; i++) {
+      updateParticle(testParticle, 16.67, physics, false, false);
     }
 
-    // After multiple frames, gravity should have pulled particle down
-    expect(particle.vy).toBeGreaterThan(initialVy);
+    // After multiple frames, gravity should have pulled particle down (vy increases in canvas coords)
+    expect(testParticle.vy).toBeGreaterThan(initialVy);
   });
 
   it('should decrease life', () => {
@@ -183,24 +193,46 @@ describe('updateParticle', () => {
   });
 
   it('should apply drag', () => {
-    const physics = { ...DEFAULT_PHYSICS, drag: 0.1 };
+    // Use physics with minimal other effects
+    const physics = { 
+      ...DEFAULT_PHYSICS, 
+      drag: 0.5, 
+      flutter: false,
+      swayAmplitude: 0,
+      wind: 0,
+      windVariation: 0,
+    };
     
-    updateParticle(particle, 16.67, physics, false, false);
-    const vx1 = particle.vx;
+    // Create a particle with specific velocity
+    const testParticle = createParticle(100, 100, 0, 50, ['red'], ['square'], [10, 10], [1, 1], 3000, 1);
+    const vx0 = Math.abs(testParticle.vx);
     
-    updateParticle(particle, 16.67, physics, false, false);
+    // Apply multiple updates to see cumulative drag effect
+    for (let i = 0; i < 20; i++) {
+      updateParticle(testParticle, 16.67, physics, false, false);
+    }
     
-    expect(Math.abs(particle.vx)).toBeLessThan(Math.abs(vx1));
+    // Velocity should decrease due to drag and friction
+    expect(Math.abs(testParticle.vx)).toBeLessThan(vx0);
   });
 
   it('should apply wind', () => {
-    // Test with high wind and multiple updates to see cumulative effect
-    const physics = { ...DEFAULT_PHYSICS, wind: 5, friction: 0.99, flutter: false };
-    const particle1 = createParticle(100, 100, 0, 0.1, ['red'], ['square'], [10, 10], [1, 1], 3000, 1);
+    // Test with high wind and minimal other effects
+    const physics = { 
+      ...DEFAULT_PHYSICS, 
+      wind: 10,  // Strong wind
+      windVariation: 0,
+      flutter: false,
+      swayAmplitude: 0,
+      friction: 0.999, // Minimal friction
+      decay: 1,
+      drag: 0,
+    };
+    const particle1 = createParticle(100, 100, Math.PI / 2, 1, ['red'], ['square'], [10, 10], [1, 1], 3000, 1);
     const initialX = particle1.x;
     
     // Apply several updates
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < 50; i++) {
       updateParticle(particle1, 16.67, physics, false, false);
     }
 

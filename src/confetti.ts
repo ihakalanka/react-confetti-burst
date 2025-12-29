@@ -4,6 +4,12 @@
  * Provides a canvas-confetti compatible function-based API for
  * imperative confetti control without React components.
  * 
+ * Built on the new modular engine with:
+ * - Strategy Pattern for updaters (wobble, tilt, roll, rotate)
+ * - Factory Pattern for particle creation
+ * - Object Pool Pattern for performance
+ * - Facade Pattern for simplified API
+ * 
  * @module confetti
  */
 
@@ -11,296 +17,75 @@ import type {
   CanvasConfettiOptions,
   ConfettiCreateOptions,
 } from './types';
+import { Container, getEngine, prefersReducedMotion } from './engine';
 
 /**
- * Internal state for managing confetti instances
+ * Container registry for managing instances
  */
-interface ConfettiInstance {
-  canvas: HTMLCanvasElement;
-  ctx: CanvasRenderingContext2D;
-  animationId: number | null;
-  particles: InternalParticle[];
-  options: ConfettiCreateOptions;
-  promise: Promise<void> | null;
-  resolve: (() => void) | null;
-  isDestroyed: boolean;
+const containers = new Map<HTMLCanvasElement | 'default', Container>();
+
+/**
+ * Get or create a container
+ */
+function getContainer(
+  key: HTMLCanvasElement | 'default',
+  options?: ConfettiCreateOptions
+): Container {
+  let container = containers.get(key);
+  
+  if (!container || container.destroyed) {
+    const containerOptions = key === 'default' 
+      ? { resize: true, ...options }
+      : { canvas: key, resize: options?.resize ?? false, ...options };
+    
+    container = new Container(containerOptions);
+    containers.set(key, container);
+  }
+  
+  return container;
 }
 
 /**
- * Internal particle representation
+ * Convert CanvasConfettiOptions to engine IConfettiOptions
  */
-interface InternalParticle {
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  tiltAngle: number;
-  tiltSpeed: number;
-  color: string;
-  shape: string;
-  scalar: number;
-  gravity: number;
-  drift: number;
-  decay: number;
-  flat: boolean;
-  tick: number;
-  totalTicks: number;
-  wobble: number;
-  wobbleSpeed: number;
-}
-
-/**
- * Global registry of confetti instances
- */
-const instances: Map<HTMLCanvasElement | 'default', ConfettiInstance> = new Map();
-
-/**
- * Check if user prefers reduced motion
- */
-function prefersReducedMotion(): boolean {
-  if (typeof window === 'undefined') return false;
-  return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
-}
-
-/**
- * Create a random particle
- */
-function createParticle(
-  canvas: HTMLCanvasElement,
-  options: CanvasConfettiOptions
-): InternalParticle {
-  const {
-    angle = 90,
-    spread = 45,
-    startVelocity = 45,
-    decay = 0.9,
-    gravity = 1,
-    drift = 0,
-    flat = false,
-    ticks = 200,
-    origin = { x: 0.5, y: 0.5 },
-    colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff'],
-    shapes = ['square', 'circle'],
-    scalar = 1,
-  } = options;
-
-  const radAngle = (angle - 90) * (Math.PI / 180);
-  const spreadRad = spread * (Math.PI / 180);
-  const randomAngle = radAngle + (Math.random() - 0.5) * spreadRad;
-  const velocity = startVelocity * (0.5 + Math.random() * 0.5);
-
+function convertOptions(options: CanvasConfettiOptions) {
   return {
-    x: origin.x * canvas.width,
-    y: origin.y * canvas.height,
-    vx: Math.cos(randomAngle) * velocity,
-    vy: Math.sin(randomAngle) * velocity,
-    tiltAngle: Math.random() * Math.PI * 2,
-    tiltSpeed: (Math.random() - 0.5) * 0.1,
-    color: colors[Math.floor(Math.random() * colors.length)] as string,
-    shape: (shapes[Math.floor(Math.random() * shapes.length)] ?? 'circle') as string,
-    scalar,
-    gravity: gravity * 0.5,
-    drift,
-    decay,
-    flat,
-    tick: 0,
-    totalTicks: ticks,
-    wobble: Math.random() * 10,
-    wobbleSpeed: 0.1 + Math.random() * 0.1,
+    particleCount: options.particleCount ?? 100,
+    size: options.size ?? 4,
+    angle: options.angle ?? 90,
+    spread: options.spread ?? 45,
+    startVelocity: options.startVelocity ?? 45,
+    decay: options.decay ?? 0.94,
+    gravity: options.gravity ?? 1,
+    drift: options.drift ?? 0,
+    flat: options.flat ?? false,
+    ticks: options.ticks ?? 200,
+    origin: options.origin ?? { x: 0.5, y: 0.5 },
+    colors: options.colors as string[] ?? undefined,
+    shapes: options.shapes as string[] ?? undefined,
+    scalar: options.scalar ?? 1,
   };
 }
 
 /**
- * Update particle physics
- */
-function updateParticle(particle: InternalParticle): boolean {
-  particle.tick++;
-  
-  if (particle.tick >= particle.totalTicks) {
-    return false;
-  }
-
-  // Apply physics
-  particle.vy += particle.gravity;
-  particle.vx += particle.drift;
-  particle.vx *= particle.decay;
-  particle.vy *= particle.decay;
-  
-  particle.x += particle.vx;
-  particle.y += particle.vy;
-  
-  // Update wobble and tilt
-  particle.wobble += particle.wobbleSpeed;
-  if (!particle.flat) {
-    particle.tiltAngle += particle.tiltSpeed;
-  }
-  
-  return true;
-}
-
-/**
- * Draw a single particle
- */
-function drawParticle(
-  ctx: CanvasRenderingContext2D,
-  particle: InternalParticle
-): void {
-  const progress = particle.tick / particle.totalTicks;
-  const fadeOut = 1 - progress;
-  const size = 10 * particle.scalar;
-  
-  ctx.save();
-  ctx.translate(particle.x, particle.y);
-  
-  if (!particle.flat) {
-    ctx.rotate(particle.tiltAngle);
-    // Add wobble for 3D effect
-    const wobbleX = Math.sin(particle.wobble) * 0.5;
-    ctx.scale(1 + wobbleX * 0.2, 1);
-  }
-  
-  ctx.globalAlpha = fadeOut;
-  ctx.fillStyle = particle.color;
-  
-  if (particle.shape === 'circle') {
-    ctx.beginPath();
-    ctx.arc(0, 0, size / 2, 0, Math.PI * 2);
-    ctx.fill();
-  } else if (particle.shape === 'square') {
-    ctx.fillRect(-size / 2, -size / 2, size, size);
-  } else {
-    // Rectangle (default)
-    ctx.fillRect(-size / 2, -size / 3, size, size * 0.6);
-  }
-  
-  ctx.restore();
-}
-
-/**
- * Animation loop for a confetti instance
- */
-function animate(instance: ConfettiInstance): void {
-  if (instance.isDestroyed) {
-    return;
-  }
-
-  const { canvas, ctx, particles } = instance;
-  
-  // Clear canvas
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  
-  // Update and draw particles
-  for (let i = particles.length - 1; i >= 0; i--) {
-    const particle = particles[i];
-    const alive = updateParticle(particle);
-    
-    if (alive) {
-      drawParticle(ctx, particle);
-    } else {
-      particles.splice(i, 1);
-    }
-  }
-  
-  // Continue animation or resolve
-  if (particles.length > 0) {
-    instance.animationId = requestAnimationFrame(() => animate(instance));
-  } else {
-    instance.animationId = null;
-    instance.resolve?.();
-    instance.resolve = null;
-    instance.promise = null;
-  }
-}
-
-/**
- * Get or create the default canvas
- */
-function getDefaultCanvas(): HTMLCanvasElement {
-  let canvas = document.getElementById('confetti-canvas') as HTMLCanvasElement | null;
-  
-  if (!canvas) {
-    canvas = document.createElement('canvas');
-    canvas.id = 'confetti-canvas';
-    canvas.style.cssText = `
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-      z-index: 2147483647;
-    `;
-    document.body.appendChild(canvas);
-  }
-  
-  // Update size
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-  
-  return canvas;
-}
-
-/**
- * Get or create a confetti instance
- */
-function getInstance(
-  canvas: HTMLCanvasElement | 'default',
-  createOptions: ConfettiCreateOptions = {}
-): ConfettiInstance | null {
-  let instance = instances.get(canvas);
-  
-  if (!instance) {
-    const actualCanvas = canvas === 'default' ? getDefaultCanvas() : canvas;
-    const ctx = actualCanvas.getContext('2d');
-    
-    if (!ctx) {
-      console.error('Could not get 2D context from canvas');
-      return null;
-    }
-    
-    instance = {
-      canvas: actualCanvas,
-      ctx,
-      animationId: null,
-      particles: [],
-      options: createOptions,
-      promise: null,
-      resolve: null,
-      isDestroyed: false,
-    };
-    
-    instances.set(canvas, instance);
-    
-    // Handle resize if enabled
-    if (createOptions.resize && canvas === 'default') {
-      window.addEventListener('resize', () => {
-        if (!instance!.isDestroyed) {
-          instance!.canvas.width = window.innerWidth;
-          instance!.canvas.height = window.innerHeight;
-        }
-      });
-    }
-  }
-  
-  return instance;
-}
-
-/**
- * Main confetti function - canvas-confetti compatible API
+ * Fire confetti! 🎉
+ * 
+ * The main confetti function - call it to create a burst of confetti particles.
+ * Compatible with canvas-confetti API.
  * 
  * @example
  * ```typescript
- * // Basic confetti burst
+ * // Basic usage
  * confetti();
  * 
- * // Customized confetti
- * confetti({
- *   particleCount: 100,
+ * // With options
+ * confetti({ 
+ *   particleCount: 150,
  *   spread: 70,
  *   origin: { x: 0.5, y: 0.5 }
  * });
  * 
- * // Wait for completion
+ * // Await completion
  * await confetti({ particleCount: 200 });
  * console.log('Confetti finished!');
  * ```
@@ -314,29 +99,13 @@ export function confetti(options: CanvasConfettiOptions = {}): Promise<void> | n
     return Promise.resolve();
   }
   
-  const instance = getInstance('default');
-  if (!instance) {
+  try {
+    const container = getContainer('default');
+    return container.fire(convertOptions(options));
+  } catch (error) {
+    console.error('Confetti error:', error);
     return null;
   }
-  
-  const {
-    particleCount = 50,
-  } = options;
-  
-  // Create particles
-  for (let i = 0; i < particleCount; i++) {
-    instance.particles.push(createParticle(instance.canvas, options));
-  }
-  
-  // Start animation if not already running
-  if (!instance.animationId) {
-    instance.promise = new Promise<void>(resolve => {
-      instance.resolve = resolve;
-    });
-    instance.animationId = requestAnimationFrame(() => animate(instance));
-  }
-  
-  return instance.promise;
 }
 
 /**
@@ -363,51 +132,25 @@ confetti.create = function(
   canvas: HTMLCanvasElement,
   globalOptions: ConfettiCreateOptions = {}
 ): ((options?: CanvasConfettiOptions) => Promise<void> | null) & { reset: () => void } {
-  const instance = getInstance(canvas, globalOptions);
+  const container = getContainer(canvas, globalOptions);
   
   const fire = (options: CanvasConfettiOptions = {}): Promise<void> | null => {
-    if (!instance || instance.isDestroyed) {
-      return null;
-    }
-    
     // Check for reduced motion preference
     const disableForReducedMotion = options.disableForReducedMotion ?? globalOptions.disableForReducedMotion;
     if (disableForReducedMotion && prefersReducedMotion()) {
       return Promise.resolve();
     }
     
-    const {
-      particleCount = 50,
-    } = options;
-    
-    // Create particles
-    for (let i = 0; i < particleCount; i++) {
-      instance.particles.push(createParticle(instance.canvas, options));
+    try {
+      return container.fire(convertOptions(options));
+    } catch (error) {
+      console.error('Confetti error:', error);
+      return null;
     }
-    
-    // Start animation if not already running
-    if (!instance.animationId) {
-      instance.promise = new Promise<void>(resolve => {
-        instance.resolve = resolve;
-      });
-      instance.animationId = requestAnimationFrame(() => animate(instance));
-    }
-    
-    return instance.promise;
   };
   
   fire.reset = () => {
-    if (instance) {
-      if (instance.animationId) {
-        cancelAnimationFrame(instance.animationId);
-        instance.animationId = null;
-      }
-      instance.particles = [];
-      instance.ctx.clearRect(0, 0, instance.canvas.width, instance.canvas.height);
-      instance.resolve?.();
-      instance.resolve = null;
-      instance.promise = null;
-    }
+    container.stop();
   };
   
   return fire;
@@ -426,17 +169,9 @@ confetti.create = function(
  * ```
  */
 confetti.reset = function(): void {
-  const instance = instances.get('default');
-  if (instance) {
-    if (instance.animationId) {
-      cancelAnimationFrame(instance.animationId);
-      instance.animationId = null;
-    }
-    instance.particles = [];
-    instance.ctx.clearRect(0, 0, instance.canvas.width, instance.canvas.height);
-    instance.resolve?.();
-    instance.resolve = null;
-    instance.promise = null;
+  const container = containers.get('default');
+  if (container && !container.destroyed) {
+    container.stop();
   }
 };
 
@@ -446,7 +181,7 @@ confetti.reset = function(): void {
  * @example
  * ```typescript
  * // Celebration from both corners
- * confetti.fireworks();
+ * await confetti.fireworks();
  * ```
  */
 confetti.fireworks = async function(options: Partial<CanvasConfettiOptions> = {}): Promise<void> {
@@ -567,6 +302,25 @@ confetti.burst = function(
     origin,
     ...options,
   });
+};
+
+/**
+ * Destroy all containers and cleanup resources
+ */
+confetti.destroyAll = function(): void {
+  for (const container of containers.values()) {
+    container.destroy();
+  }
+  containers.clear();
+  getEngine().destroyAll();
+};
+
+/**
+ * Get available shape types
+ */
+confetti.getShapes = function(): string[] {
+  // Get from default shape registry
+  return ['square', 'circle', 'star', 'triangle', 'rectangle', 'diamond', 'heart', 'hexagon'];
 };
 
 // Make confetti the default export
