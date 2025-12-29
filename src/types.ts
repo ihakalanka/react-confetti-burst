@@ -217,30 +217,42 @@ export type CustomDrawFunction = (context: DrawContext) => void;
  * Configuration for particle physics behavior
  */
 export interface PhysicsConfig {
-  /** Gravity strength (positive = downward). Default: 0.3 */
+  /** Gravity strength (positive = downward). Default: 0.25 */
   readonly gravity: number;
-  /** Air resistance factor (0-1). Default: 0.02 */
+  /** Air resistance factor (0-1). Default: 0.035 */
   readonly drag: number;
-  /** Friction coefficient (0-1). Default: 0.99 */
+  /** Friction coefficient (0-1). Default: 0.985 */
   readonly friction: number;
-  /** Rotation speed multiplier. Default: 1 */
+  /** Rotation speed multiplier. Default: 1.5 */
   readonly rotationSpeed: number;
   /** Wind force applied horizontally. Default: 0 */
   readonly wind: number;
-  /** Wind variation range. Default: 0 */
+  /** Wind variation range. Default: 0.02 */
   readonly windVariation: number;
   /** Whether particles should tumble/rotate. Default: true */
   readonly tumble: boolean;
-  /** Velocity decay per frame (0-1). Default: 0.98 */
+  /** Velocity decay per frame (0-1). Default: 0.99 */
   readonly decay: number;
   /** Bounce factor when hitting edges (0 = no bounce, 1 = full). Default: 0 */
   readonly bounce: number;
   /** Floor Y position for bouncing (null = no floor). Default: null */
   readonly floor: number | null;
-  /** Enable 3D wobble effect. Default: false */
+  /** Enable 3D wobble effect. Default: true */
   readonly wobble: boolean;
-  /** Wobble speed. Default: 1 */
+  /** Wobble speed. Default: 1.5 */
   readonly wobbleSpeed: number;
+  /** Enable flutter effect for paper-like movement. Default: true */
+  readonly flutter?: boolean;
+  /** Flutter oscillation speed. Default: 2.5 */
+  readonly flutterSpeed?: number;
+  /** Flutter intensity (0-1). Default: 0.4 */
+  readonly flutterIntensity?: number;
+  /** Air resistance based on particle surface area. Default: 0.03 */
+  readonly airResistance?: number;
+  /** Amplitude of side-to-side sway. Default: 15 */
+  readonly swayAmplitude?: number;
+  /** Frequency of sway oscillation. Default: 2 */
+  readonly swayFrequency?: number;
 }
 
 /**
@@ -251,14 +263,16 @@ export interface DirectionConfig {
   readonly direction: BurstDirection;
   /** Custom angle in degrees (0 = right, 90 = up). Used when direction is 'custom' */
   readonly angle?: number;
-  /** Spread angle in degrees for the burst cone. Default: 45 */
+  /** Spread angle in degrees for the burst cone. Default: 55 */
   readonly spread: number;
-  /** Initial velocity range [min, max]. Default: [20, 40] */
+  /** Initial velocity range [min, max]. Default: [25, 50] */
   readonly velocity: readonly [number, number];
   /** Initial velocity X range { min, max } (alternative to velocity/angle) */
   readonly initialVelocityX?: { readonly min: number; readonly max: number } | number;
   /** Initial velocity Y range { min, max } (alternative to velocity/angle) */
   readonly initialVelocityY?: { readonly min: number; readonly max: number } | number;
+  /** How quickly initial velocity decays. Default: 0.92 */
+  readonly velocityDecay?: number;
 }
 
 /**
@@ -331,17 +345,17 @@ export interface ImageParticle {
 export interface ParticleConfig {
   /** Array of colors for particles. Default: rainbow palette */
   readonly colors: readonly ColorInput[];
-  /** Particle shapes to use. Default: ['square', 'circle'] */
+  /** Particle shapes to use. Default: ['square', 'rectangle', 'circle'] */
   readonly shapes: readonly ParticleShape[];
-  /** Size range [min, max] in pixels. Default: [8, 12] */
+  /** Size range [min, max] in pixels. Default: [6, 14] */
   readonly size: readonly [number, number];
-  /** Opacity range [min, max]. Default: [0.8, 1] */
+  /** Opacity range [min, max]. Default: [0.85, 1] */
   readonly opacity: readonly [number, number];
-  /** Lifespan in milliseconds. Default: 3000 */
+  /** Lifespan in milliseconds. Default: 4000 */
   readonly lifespan: number;
   /** Whether to fade out particles. Default: true */
   readonly fadeOut: boolean;
-  /** Whether to scale down particles over time. Default: true */
+  /** Whether to scale down particles over time. Default: false */
   readonly scaleDown: boolean;
   /** Custom draw function for 'custom' shape */
   readonly drawShape?: CustomDrawFunction;
@@ -353,12 +367,16 @@ export interface ParticleConfig {
   readonly glow?: Partial<GlowConfig>;
   /** Whether particles should spin. Default: true */
   readonly spin: boolean;
-  /** Spin speed range [min, max]. Default: [-10, 10] */
+  /** Spin speed range [min, max]. Default: [-15, 15] */
   readonly spinSpeed: readonly [number, number];
-  /** Tilt range in degrees [min, max]. Default: [-15, 15] */
+  /** Tilt range in degrees [min, max]. Default: [-30, 30] */
   readonly tilt: readonly [number, number];
-  /** 3D depth effect (0 = flat, 1 = full 3D). Default: 0 */
+  /** 3D depth effect (0 = flat, 1 = full 3D). Default: 0.6 */
   readonly depth3D: number;
+  /** Aspect ratio range for paper-like particle shapes [min, max]. Default: [0.5, 1.5] */
+  readonly aspectRatio?: readonly [number, number];
+  /** Enable shimmer/shine effect. Default: true */
+  readonly shimmer?: boolean;
 }
 
 /**
@@ -628,6 +646,25 @@ export interface ParticleState {
   hasExploded: boolean;
   /** Custom data storage */
   data: Record<string, unknown>;
+  // New properties for realistic movement
+  /** Flutter phase for paper-like oscillation */
+  flutterPhase: number;
+  /** Flutter speed multiplier */
+  flutterSpeed: number;
+  /** Sway phase for side-to-side movement */
+  swayPhase: number;
+  /** Aspect ratio for the particle (width/height) */
+  aspectRatio: number;
+  /** Angular velocity for more realistic rotation */
+  angularVelocity: number;
+  /** Current scale for 3D flip effect (X axis) */
+  scaleX: number;
+  /** Current scale for 3D flip effect (Y axis) */
+  scaleY: number;
+  /** Shimmer phase for shine effect */
+  shimmerPhase: number;
+  /** Individual air resistance based on orientation */
+  currentDrag: number;
 }
 
 /**

@@ -42,46 +42,58 @@ export const DEFAULT_COLORS: readonly string[] = [
 
 /**
  * Default physics configuration
+ * Tuned for realistic paper/confetti behavior
  */
 export const DEFAULT_PHYSICS: PhysicsConfig = {
-  gravity: 0.3,
-  drag: 0.02,
-  friction: 0.99,
-  rotationSpeed: 1,
+  gravity: 0.25,           // Lighter gravity for floatier feel
+  drag: 0.035,             // More air resistance for paper-like flutter
+  friction: 0.985,         // Slightly more friction
+  rotationSpeed: 1.5,      // More tumbling
   wind: 0,
-  windVariation: 0,
+  windVariation: 0.02,     // Subtle wind variation for natural movement
   tumble: true,
-  decay: 0.98,
+  decay: 0.99,             // Slower decay for longer flight
   bounce: 0,
   floor: null,
-  wobble: false,
-  wobbleSpeed: 1,
+  wobble: true,            // Enable wobble by default
+  wobbleSpeed: 1.5,        // Natural wobble speed
+  flutter: true,           // New: Enable flutter effect
+  flutterSpeed: 2.5,       // New: Flutter oscillation speed
+  flutterIntensity: 0.4,   // New: How much flutter affects movement
+  airResistance: 0.03,     // New: Additional air resistance based on surface area
+  swayAmplitude: 15,       // New: How much particles sway side-to-side
+  swayFrequency: 2,        // New: Sway oscillation frequency
 } as const;
 
 /**
  * Default direction configuration
+ * Natural burst pattern with good spread
  */
 export const DEFAULT_DIRECTION: DirectionConfig = {
   direction: 'up',
-  spread: 45,
-  velocity: [20, 40] as const,
+  spread: 55,              // Wider spread for more natural look
+  velocity: [25, 50] as const,  // Higher velocity range for explosive feel
+  velocityDecay: 0.92,     // New: How quickly initial velocity decays
 } as const;
 
 /**
  * Default particle configuration
+ * Optimized for realistic confetti appearance
  */
 export const DEFAULT_PARTICLE: ParticleConfig = {
   colors: DEFAULT_COLORS,
-  shapes: ['square', 'circle'] as const,
-  size: [8, 12] as const,
-  opacity: [0.8, 1] as const,
-  lifespan: 3000,
+  shapes: ['square', 'rectangle', 'circle'] as const,  // Rectangle adds paper-like variety
+  size: [6, 14] as const,        // More size variation
+  opacity: [0.85, 1] as const,
+  lifespan: 4000,                // Longer lifespan for slower fall
   fadeOut: true,
-  scaleDown: true,
+  scaleDown: false,              // Real confetti doesn't shrink
   spin: true,
-  spinSpeed: [-10, 10] as const,
-  tilt: [-15, 15] as const,
-  depth3D: 0,
+  spinSpeed: [-15, 15] as const, // More spin variation
+  tilt: [-30, 30] as const,      // More tilt for 3D paper effect
+  depth3D: 0.6,                  // Enable 3D depth effect by default
+  aspectRatio: [0.5, 1.5] as const, // New: Varied aspect ratios for paper pieces
+  shimmer: true,                 // New: Subtle shimmer/shine effect
 } as const;
 
 /**
@@ -349,24 +361,47 @@ export const EMOJI_SETS = {
 export const PRESETS: Record<PresetName, PresetConfig> = {
   default: {
     name: 'default',
-    description: 'Default balanced confetti burst',
-    options: {},
+    description: 'Default balanced confetti burst with realistic paper physics',
+    options: {
+      particleCount: 60,
+      particle: {
+        shapes: ['square', 'rectangle', 'circle'] as const,
+        size: [6, 14] as const,
+        depth3D: 0.6,
+        tilt: [-30, 30] as const,
+      },
+      physics: {
+        gravity: 0.25,
+        drag: 0.035,
+        wobble: true,
+        wobbleSpeed: 1.5,
+      },
+    },
   },
   celebration: {
     name: 'celebration',
-    description: 'Big celebration with lots of colorful confetti',
+    description: 'Big celebration with lots of colorful confetti and realistic movement',
     options: {
-      particleCount: 100,
+      particleCount: 120,
       particle: {
         colors: [...COLOR_PALETTES.rainbow],
-        shapes: ['square', 'circle', 'star'] as const,
-        size: [10, 15] as const,
-        lifespan: 4000,
+        shapes: ['square', 'rectangle', 'circle', 'star'] as const,
+        size: [8, 16] as const,
+        lifespan: 5000,
+        depth3D: 0.7,
+        tilt: [-35, 35] as const,
       },
       direction: {
         direction: 'radial',
         spread: 360,
-        velocity: [25, 50] as const,
+        velocity: [30, 55] as const,
+      },
+      physics: {
+        gravity: 0.22,
+        drag: 0.04,
+        wobble: true,
+        wobbleSpeed: 2,
+        windVariation: 0.03,
       },
     },
   },
@@ -459,18 +494,24 @@ export const PRESETS: Record<PresetName, PresetConfig> = {
   },
   confetti: {
     name: 'confetti',
-    description: 'Classic confetti falling from top',
+    description: 'Classic confetti falling with realistic paper flutter',
     options: {
       mode: 'continuous',
       particleCount: 200,
       particle: {
         shapes: ['square', 'rectangle'] as const,
-        size: [8, 14] as const,
+        size: [6, 14] as const,
+        depth3D: 0.8,
+        tilt: [-40, 40] as const,
+        lifespan: 6000,
       },
       physics: {
-        gravity: 0.2,
-        wind: 0.1,
+        gravity: 0.18,
+        drag: 0.045,
+        wind: 0.08,
+        windVariation: 0.04,
         wobble: true,
+        wobbleSpeed: 2,
       },
       continuous: {
         recycle: true,

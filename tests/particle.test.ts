@@ -57,16 +57,18 @@ describe('createParticle', () => {
     expect(p3.id).toBe(2);
   });
 
-  it('should calculate velocity based on angle', () => {
-    // Angle 0 (right)
+  it('should calculate velocity based on angle with natural variation', () => {
+    // Angle 0 (right) - velocity should be approximately 10 with ±15% variation
     const pRight = createParticle(0, 0, 0, 10, ['red'], ['circle'], [5, 5], [1, 1], 1000, 1);
-    expect(pRight.vx).toBeCloseTo(10);
-    expect(pRight.vy).toBeCloseTo(0);
+    expect(pRight.vx).toBeGreaterThanOrEqual(8.5);  // 10 * 0.85
+    expect(pRight.vx).toBeLessThanOrEqual(11.5);    // 10 * 1.15
+    expect(pRight.vy).toBeCloseTo(0, 0);
 
-    // Angle PI/2 (up)
+    // Angle PI/2 (up) - velocity should be approximately -10 with ±15% variation
     const pUp = createParticle(0, 0, Math.PI / 2, 10, ['red'], ['circle'], [5, 5], [1, 1], 1000, 1);
-    expect(pUp.vx).toBeCloseTo(0);
-    expect(pUp.vy).toBeCloseTo(-10); // Negative because canvas Y is inverted
+    expect(pUp.vx).toBeCloseTo(0, 0);
+    expect(pUp.vy).toBeLessThanOrEqual(-8.5);  // -10 * 0.85
+    expect(pUp.vy).toBeGreaterThanOrEqual(-11.5); // -10 * 1.15
   });
 
   it('should pick random size within range', () => {
@@ -129,8 +131,12 @@ describe('updateParticle', () => {
   it('should apply gravity', () => {
     const initialVy = particle.vy;
 
-    updateParticle(particle, 16.67, DEFAULT_PHYSICS, false, false);
+    // Run multiple updates to ensure gravity effect accumulates beyond flutter
+    for (let i = 0; i < 10; i++) {
+      updateParticle(particle, 16.67, DEFAULT_PHYSICS, false, false);
+    }
 
+    // After multiple frames, gravity should have pulled particle down
     expect(particle.vy).toBeGreaterThan(initialVy);
   });
 
@@ -188,12 +194,18 @@ describe('updateParticle', () => {
   });
 
   it('should apply wind', () => {
-    const physics = { ...DEFAULT_PHYSICS, wind: 1 };
-    const initialVx = particle.vx;
+    // Test with high wind and multiple updates to see cumulative effect
+    const physics = { ...DEFAULT_PHYSICS, wind: 5, friction: 0.99, flutter: false };
+    const particle1 = createParticle(100, 100, 0, 0.1, ['red'], ['square'], [10, 10], [1, 1], 3000, 1);
+    const initialX = particle1.x;
+    
+    // Apply several updates
+    for (let i = 0; i < 20; i++) {
+      updateParticle(particle1, 16.67, physics, false, false);
+    }
 
-    updateParticle(particle, 16.67, physics, false, false);
-
-    expect(particle.vx).toBeGreaterThan(initialVx - 0.5); // Wind pushes right
+    // Wind should push particle to the right
+    expect(particle1.x).toBeGreaterThan(initialX);
   });
 });
 
