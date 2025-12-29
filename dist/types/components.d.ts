@@ -216,4 +216,3 @@ export declare namespace Confetti {
     var displayName: string;
 }
 export {};
-//# sourceMappingURL=components.d.ts.map

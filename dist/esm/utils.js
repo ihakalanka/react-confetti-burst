@@ -306,4 +306,3 @@ export function normalizeAngle(angle) {
     const twoPi = MATH_CONSTANTS.TWO_PI;
     return ((angle % twoPi) + twoPi) % twoPi;
 }
-//# sourceMappingURL=utils.js.map

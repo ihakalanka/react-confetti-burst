@@ -338,4 +338,3 @@ function Confetti({ width, height, numberOfPieces = 200, confettiSource, initial
     return null;
 }
 Confetti.displayName = 'Confetti';
-//# sourceMappingURL=components.js.map

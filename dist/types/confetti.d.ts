@@ -47,4 +47,3 @@ export declare namespace confetti {
     }, options?: Partial<CanvasConfettiOptions>) => Promise<void> | null;
 }
 export default confetti;
-//# sourceMappingURL=confetti.d.ts.map

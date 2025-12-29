@@ -262,4 +262,3 @@ function loadImage(src) {
         img.src = src;
     });
 }
-//# sourceMappingURL=shapes.js.map

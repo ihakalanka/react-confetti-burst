@@ -119,4 +119,3 @@ export declare function getActiveAnimationCount(): number;
  * Forces cleanup of all resources
  */
 export declare function forceCleanup(): void;
-//# sourceMappingURL=confetti-engine.d.ts.map

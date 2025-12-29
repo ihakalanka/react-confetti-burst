@@ -331,4 +331,3 @@ export function Confetti({ width, height, numberOfPieces = 200, confettiSource, 
     return null;
 }
 Confetti.displayName = 'Confetti';
-//# sourceMappingURL=components.js.map

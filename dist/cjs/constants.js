@@ -606,4 +606,3 @@ exports.PRESETS = {
 function getPreset(name) {
     return exports.PRESETS[name].options;
 }
-//# sourceMappingURL=constants.js.map

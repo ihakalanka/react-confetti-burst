@@ -187,4 +187,3 @@ export declare const emojiShapes: {
     /** Holiday emoji */
     holiday: TextShape[];
 };
-//# sourceMappingURL=shapes.d.ts.map

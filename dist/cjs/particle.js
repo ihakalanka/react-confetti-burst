@@ -472,4 +472,3 @@ function countActiveParticles(particles) {
 function resetParticleIdCounter() {
     particleIdCounter = 0;
 }
-//# sourceMappingURL=particle.js.map

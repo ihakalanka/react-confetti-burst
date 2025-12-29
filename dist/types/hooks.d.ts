@@ -91,4 +91,3 @@ export declare function useConfettiCenter(options?: ConfettiBurstOptions): {
     fire: () => ExplosionHandle;
     isActive: boolean;
 };
-//# sourceMappingURL=hooks.d.ts.map

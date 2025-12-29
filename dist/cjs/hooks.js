@@ -222,4 +222,3 @@ function useConfettiCenter(options) {
     }, [baseFire, options]);
     return { fire, isActive };
 }
-//# sourceMappingURL=hooks.js.map

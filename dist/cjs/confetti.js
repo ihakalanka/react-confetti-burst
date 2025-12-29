@@ -443,4 +443,3 @@ confetti.burst = function (origin, options = {}) {
 };
 // Make confetti the default export
 exports.default = confetti;
-//# sourceMappingURL=confetti.js.map

@@ -21,4 +21,3 @@
  * - Custom canvas support
  */
 export {};
-//# sourceMappingURL=types.js.map

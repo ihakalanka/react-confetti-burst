@@ -717,4 +717,3 @@ export interface PresetConfig {
     readonly options: ConfettiBurstOptions;
     readonly description: string;
 }
-//# sourceMappingURL=types.d.ts.map

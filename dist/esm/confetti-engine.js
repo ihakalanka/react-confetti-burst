@@ -578,4 +578,3 @@ export function forceCleanup() {
     }
     activeAnimations = 0;
 }
-//# sourceMappingURL=confetti-engine.js.map

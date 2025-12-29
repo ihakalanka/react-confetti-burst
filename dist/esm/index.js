@@ -143,4 +143,3 @@ export {
   clearImageCache,
 } from './particle';
 */
-//# sourceMappingURL=index.js.map

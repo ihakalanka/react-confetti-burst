@@ -144,4 +144,3 @@ export declare const PRESETS: Record<PresetName, PresetConfig>;
  */
 export declare function getPreset(name: PresetName): ConfettiBurstOptions;
 export {};
-//# sourceMappingURL=constants.d.ts.map

@@ -31,4 +31,3 @@ export { useConfetti, } from './hooks';
 export { ConfettiBurst, ConfettiButton, } from './components';
 export { parseColor, rgbaToString, randomInRange, randomInt, randomFromArray, clamp, lerp, degToRad, radToDeg, getDirectionAngle, getElementCenter, mergeConfig, isBrowser, } from './utils';
 export { confetti, confetti as default } from './confetti';
-//# sourceMappingURL=index.d.ts.map

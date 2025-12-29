@@ -47,4 +47,3 @@ export declare function countActiveParticles(particles: readonly ParticleState[]
  * Resets the particle ID counter (useful for testing)
  */
 export declare function resetParticleIdCounter(): void;
-//# sourceMappingURL=particle.d.ts.map

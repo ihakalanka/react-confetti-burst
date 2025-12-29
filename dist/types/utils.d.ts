@@ -87,4 +87,3 @@ export declare function distance(p1: Point, p2: Point): number;
  * Normalizes an angle to be between 0 and 2π
  */
 export declare function normalizeAngle(angle: number): number;
-//# sourceMappingURL=utils.d.ts.map
