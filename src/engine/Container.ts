@@ -377,9 +377,15 @@ export class Container implements IContainer {
     const pixelRatio = getPixelRatio();
     
     if (this._isOwnCanvas) {
-      // Full-screen canvas
-      this.canvas.width = window.innerWidth * pixelRatio;
-      this.canvas.height = window.innerHeight * pixelRatio;
+      // Full-screen canvas - use clientWidth/Height to exclude scrollbar
+      const width = document.documentElement.clientWidth;
+      const height = document.documentElement.clientHeight;
+      
+      // Set both canvas internal size and CSS size to match viewport exactly
+      this.canvas.width = width * pixelRatio;
+      this.canvas.height = height * pixelRatio;
+      this.canvas.style.width = `${width}px`;
+      this.canvas.style.height = `${height}px`;
     } else {
       // Use parent size
       const rect = this.canvas.getBoundingClientRect();

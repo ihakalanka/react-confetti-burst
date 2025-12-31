@@ -45,10 +45,10 @@ export const DEFAULT_COLORS: readonly string[] = [
  * Tuned for realistic paper/confetti behavior
  */
 export const DEFAULT_PHYSICS: PhysicsConfig = {
-  gravity: 0.25,           // Lighter gravity for floatier feel
+  gravity: 1,              // Standard gravity for natural fall
   drag: 0.035,             // More air resistance for paper-like flutter
-  friction: 0.985,         // Slightly more friction
-  rotationSpeed: 1.5,      // More tumbling
+  friction: 0.99,          // Slightly more friction
+  rotationSpeed: 1,        // Moderate tumbling
   wind: 0,
   windVariation: 0.02,     // Subtle wind variation for natural movement
   tumble: true,

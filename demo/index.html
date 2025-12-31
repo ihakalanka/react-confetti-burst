@@ -53,6 +53,9 @@
 <body>
   <h1>🎉 Confetti Burst Demo</h1>
   
+  <!-- React ConfettiButton Test -->
+  <div id="confetti-button-root" style="margin-bottom: 20px;"></div>
+  
   <div class="buttons">
     <button class="burst" id="burstBtn">Burst!</button>
     <button class="celebration" id="celebrationBtn">Celebration</button>
@@ -65,7 +68,54 @@
     <p>Click anywhere on the screen to burst confetti at that location!</p>
   </div>
 
+  <!-- React for ConfettiButton component -->
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  
   <script src="../dist/confetti.browser.js"></script>
+  
+  <!-- ConfettiButton component (plain JS, no Babel needed) -->
+  <script>
+    (function() {
+      const { confetti } = window.ReactConfettiBurst;
+      const { createElement: h } = React;
+      
+      // Simple ConfettiButton implementation for testing
+      function ConfettiButton({ children, options = {} }) {
+        const handleClick = (e) => {
+          const rect = e.currentTarget.getBoundingClientRect();
+          const x = (rect.left + rect.width / 2) / window.innerWidth;
+          const y = (rect.top + rect.height / 2) / window.innerHeight;
+          
+          confetti({
+            particleCount: 100,
+            spread: 70,
+            origin: { x, y },
+            ...options
+          });
+        };
+        
+        return h('button', {
+          onClick: handleClick,
+          style: {
+            padding: '15px 30px',
+            fontSize: '16px',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontWeight: '600',
+            background: 'linear-gradient(135deg, #667eea, #764ba2)',
+            color: 'white'
+          }
+        }, children);
+      }
+      
+      // Render ConfettiButton
+      const container = document.getElementById('confetti-button-root');
+      const root = ReactDOM.createRoot(container);
+      root.render(h(ConfettiButton, null, 'Click me! 🎉'));
+    })();
+  </script>
   <script>
     // Use react-confetti-burst's canvas-confetti compatible API
     const { confetti } = ReactConfettiBurst;

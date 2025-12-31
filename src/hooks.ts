@@ -14,10 +14,25 @@ import type {
   UseConfettiReturn,
 } from './types';
 
-import {
-  createConfettiExplosion,
-  fireFromElement,
-} from './confetti-engine';
+import { confetti } from './confetti';
+
+// Create a simple handle for tracking confetti
+function createHandle(): ExplosionHandle {
+  let stopped = false;
+  let paused = false;
+  const promise = Promise.resolve();
+  
+  return {
+    stop: () => { stopped = true; confetti.reset(); },
+    pause: () => { paused = true; },
+    resume: () => { paused = false; },
+    promise,
+    addParticles: () => {},
+    clear: () => { confetti.reset(); },
+    getParticleCount: () => 0,
+    getState: () => stopped ? 'stopped' : paused ? 'paused' : 'running',
+  };
+}
 
 /**
  * Main hook for triggering confetti animations
@@ -46,23 +61,38 @@ export function useConfetti(): UseConfettiReturn {
   }, []);
 
   /**
-   * Fires confetti from a point
+   * Fires confetti from a point (pixel coordinates)
    */
   const fire = useCallback((
     origin: BurstOrigin,
     options?: ConfettiBurstOptions
   ): ExplosionHandle => {
-    const handle = createConfettiExplosion(origin, options);
+    // Convert pixel coordinates to normalized (0-1) coordinates
+    // Must match canvas dimensions (window.innerWidth/innerHeight)
+    const normalizedOrigin = {
+      x: origin.x / window.innerWidth,
+      y: origin.y / window.innerHeight,
+    };
     
+    const handle = createHandle();
     activeHandles.current.add(handle);
     setIsActive(true);
 
-    handle.promise.then(() => {
+    // Use the confetti function with canvas-confetti style options
+    confetti({
+      particleCount: options?.particleCount ?? 100,
+      spread: options?.direction?.spread ?? 70,
+      origin: normalizedOrigin,
+      colors: options?.particle?.colors as string[],
+    });
+
+    // Auto-cleanup after animation
+    setTimeout(() => {
       activeHandles.current.delete(handle);
       if (activeHandles.current.size === 0) {
         setIsActive(false);
       }
-    });
+    }, 3000);
 
     return handle;
   }, []);
@@ -76,19 +106,36 @@ export function useConfetti(): UseConfettiReturn {
   ): ExplosionHandle | null => {
     if (!element) return null;
 
-    const handle = fireFromElement(element, options);
+    const rect = element.getBoundingClientRect();
+    // getBoundingClientRect is relative to viewport (excludes scrollbar)
+    // So we must use clientWidth/clientHeight (not window.inner* which includes scrollbar)
+    const viewportWidth = document.documentElement.clientWidth;
+    const viewportHeight = document.documentElement.clientHeight;
     
-    if (handle) {
-      activeHandles.current.add(handle);
-      setIsActive(true);
+    const normalizedOrigin = {
+      x: (rect.left + rect.width / 2) / viewportWidth,
+      y: (rect.top + rect.height / 2) / viewportHeight,
+    };
+    
+    const handle = createHandle();
+    activeHandles.current.add(handle);
+    setIsActive(true);
 
-      handle.promise.then(() => {
-        activeHandles.current.delete(handle);
-        if (activeHandles.current.size === 0) {
-          setIsActive(false);
-        }
-      });
-    }
+    // Use the confetti function with canvas-confetti style options
+    confetti({
+      particleCount: options?.particleCount ?? 100,
+      spread: options?.direction?.spread ?? 70,
+      origin: normalizedOrigin,
+      colors: options?.particle?.colors as string[],
+    });
+
+    // Auto-cleanup after animation
+    setTimeout(() => {
+      activeHandles.current.delete(handle);
+      if (activeHandles.current.size === 0) {
+        setIsActive(false);
+      }
+    }, 3000);
 
     return handle;
   }, []);
