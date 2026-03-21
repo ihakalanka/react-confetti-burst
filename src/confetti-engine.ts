@@ -70,6 +70,7 @@ import {
 let globalCanvas: HTMLCanvasElement | null = null;
 let globalCtx: CanvasRenderingContext2D | null = null;
 let activeAnimations = 0;
+let reducedMotionWarned = false;
 let resizeHandler: (() => void) | null = null;
 
 /**
@@ -79,7 +80,27 @@ let resizeHandler: (() => void) | null = null;
  * Reuses particle objects to minimize garbage collection
  */
 const particlePool: ParticleState[] = [];
-const MAX_POOL_SIZE = 500;
+let MAX_POOL_SIZE = 500;
+
+/**
+ * Sets the maximum particle pool size.
+ * Call before creating any ConfettiEngine instances.
+ * @param size - Maximum number of particles to pool (default: 500)
+ */
+export function setMaxPoolSize(size: number): void {
+  MAX_POOL_SIZE = Math.max(1, Math.floor(size));
+  // Trim pool if new size is smaller
+  while (particlePool.length > MAX_POOL_SIZE) {
+    particlePool.pop();
+  }
+}
+
+/**
+ * Gets the current maximum particle pool size.
+ */
+export function getMaxPoolSize(): number {
+  return MAX_POOL_SIZE;
+}
 
 /**
  * Get a particle from the pool (for future use)
@@ -308,6 +329,16 @@ export class ConfettiEngine {
 
     if (!isBrowser()) {
       console.warn('ConfettiEngine: Cannot start animation in non-browser environment');
+      this.deferred.resolve();
+      return this.createHandle();
+    }
+
+    // Check for reduced motion preference
+    if (typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+      if (process.env.NODE_ENV !== 'production' && !reducedMotionWarned) {
+        reducedMotionWarned = true;
+        console.info('ConfettiEngine: Animation skipped because prefers-reduced-motion is enabled.');
+      }
       this.deferred.resolve();
       return this.createHandle();
     }
@@ -645,7 +676,7 @@ export class ConfettiEngine {
         if (this.continuousConfig.recycle) {
           // OPTIMIZATION: Recycle in-place instead of filter
           const targetCount = this.continuousConfig.numberOfPieces;
-          let toSpawn = targetCount - activeCount;
+          const toSpawn = targetCount - activeCount;
           
           if (toSpawn > 0) {
             // Return dead particles to pool and spawn new ones

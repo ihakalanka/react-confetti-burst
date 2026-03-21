@@ -15,7 +15,7 @@ A high-performance, zero-dependency React confetti component with realistic part
 - 🎯 **Directional bursts** - Up, down, left, right, radial, or custom angles
 - ⚡ **High performance** - Optimized canvas rendering with 60fps
 - 🎨 **Realistic physics** - Wobble, tilt, roll, and rotate effects
-- 📦 **Tiny bundle** - Minimal footprint
+- 📦 **Tiny bundle** - Tree-shakable presets for optimal bundle size
 - 🔷 **TypeScript first** - Full type safety built-in
 - ♿ **Accessible** - Respects `prefers-reduced-motion`
 
@@ -364,6 +364,151 @@ confetti.snow({
   colors: ['#ffffff', '#e0e0e0'],
 });
 ```
+
+## Presets
+
+16 built-in presets for quick setup:
+
+```tsx
+import { getPreset, getPresetNames, confetti } from 'react-confetti-burst';
+
+// List all available presets
+console.log(getPresetNames());
+// ['default', 'celebration', 'firework', 'snow', 'rain', 'sparkle',
+//  'confetti', 'emoji', 'hearts', 'stars', 'money', 'pride',
+//  'christmas', 'halloween', 'newYear', 'birthday']
+
+// Use a preset with the React hook
+const { fire } = useConfetti();
+const preset = getPreset('celebration');
+fire({ x: 500, y: 300 }, preset.options);
+```
+
+| Preset | Description |
+|--------|-------------|
+| `default` | Balanced burst with realistic paper physics |
+| `celebration` | Big party with lots of colorful confetti |
+| `firework` | Firework explosion with secondary bursts |
+| `snow` | Gentle falling snowflakes |
+| `rain` | Rainfall effect |
+| `sparkle` | Sparkling gold stars with glow |
+| `confetti` | Classic continuous falling confetti |
+| `emoji` | Emoji celebration (🎉🎊🥳✨🎈) |
+| `hearts` | Floating hearts |
+| `stars` | Shooting stars |
+| `money` | Money rain (💰💵💸🤑💎) |
+| `pride` | Rainbow pride celebration |
+| `christmas` | Christmas themed (🎄🎅🎁❄️⭐) |
+| `halloween` | Spooky Halloween (🎃👻🦇🕷️💀) |
+| `newYear` | New Year fireworks |
+| `birthday` | Birthday party (🎂🎁🎈🎉🥳) |
+
+## Custom Shapes
+
+Create confetti with custom SVG paths, text, or emoji:
+
+```tsx
+import { shapeFromPath, shapeFromText, shapesFromEmoji } from 'react-confetti-burst';
+
+// SVG path shape
+const star = shapeFromPath({
+  path: 'M0,-1 L0.588,0.809 L-0.951,-0.309 L0.951,-0.309 L-0.588,0.809 Z',
+});
+
+// Text/emoji shape
+const heart = shapeFromText({ text: '❤️', scalar: 2 });
+
+// Multiple emoji shapes
+const partyEmoji = shapesFromEmoji(['🎉', '🎊', '✨', '🥳']);
+
+// Use with confetti
+fire({ x: 500, y: 300 }, {
+  particle: { shapes: [star, heart, ...partyEmoji] },
+});
+```
+
+## Advanced Physics Configuration
+
+Fine-tune particle behavior:
+
+```tsx
+fire({ x: 500, y: 300 }, {
+  physics: {
+    gravity: 0.5,           // Lower = floatier
+    drag: 0.05,             // Air resistance
+    wind: 0.3,              // Horizontal wind
+    windVariation: 0.1,     // Wind randomness
+    wobble: true,           // 3D wobble effect
+    wobbleSpeed: 2,         // Wobble oscillation speed
+    flutter: true,          // Paper-like flutter
+    flutterIntensity: 0.4,  // Flutter strength
+    bounce: 0.5,            // Floor bounce factor
+    floor: 600,             // Y position of floor
+  },
+});
+```
+
+## Performance Tips
+
+- Keep `particleCount` under 200 for mobile devices
+- Use `setMaxPoolSize()` to control memory usage
+- Shapes like `'circle'` and `'square'` render faster than `'star'` or `'heart'`
+- Set `flat: true` to disable 3D effects for better performance
+- The library automatically caps device pixel ratio at 2x
+- Particles are automatically culled when they leave the viewport
+
+## Browser Standalone (CDN)
+
+Use without React via the IIFE browser build:
+
+```html
+<script src="https://unpkg.com/react-confetti-burst/dist/confetti.browser.js"></script>
+<script>
+  // Global `confetti` function is available
+  confetti({ particleCount: 100, spread: 70 });
+</script>
+```
+
+Or import via package exports:
+
+```js
+import confetti from 'react-confetti-burst/browser';
+```
+
+## Migration from canvas-confetti
+
+The `confetti()` function is API-compatible with canvas-confetti:
+
+```tsx
+// canvas-confetti
+import confetti from 'canvas-confetti';
+confetti({ particleCount: 100, spread: 70 });
+
+// react-confetti-burst (same API!)
+import { confetti } from 'react-confetti-burst';
+confetti({ particleCount: 100, spread: 70 });
+
+// Additional methods
+confetti.fireworks();
+confetti.schoolPride({ colors: ['#bb0000', '#ffffff'] });
+confetti.snow({ duration: 5000 });
+confetti.burst({ x: 0.5, y: 0.3 });
+confetti.reset();
+```
+
+## FAQ
+
+**Q: Does it work with SSR/Next.js?**
+A: Yes. All DOM access is guarded by `isBrowser()` checks. The library is safe to import in server environments.
+
+**Q: Why doesn't confetti appear?**
+A: Check if `prefers-reduced-motion` is enabled in your OS settings. The library respects this accessibility preference and will silently skip animations.
+
+**Q: How do I control memory usage?**
+A: Use `setMaxPoolSize(n)` to limit the particle object pool. The default is 500. Call `forceCleanup()` to immediately release all resources.
+
+**Q: Can I use it without React?**
+A: Yes! Use the browser standalone build (`dist/confetti.browser.js`) or the `confetti()` functional API which doesn't require React components.
 
 ## Browser Support
 

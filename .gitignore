@@ -32,6 +32,9 @@ examples/
 # Demo (development only)
 demo/
 
+# Docs (development only)
+docs/
+
 # Misc
 .cache/
 tmp/
@@ -39,3 +42,12 @@ temp/
 
 # npm pack artifacts
 *.tgz
+
+# Build output
+dist/
+build/
+
+# Instructions
+CLAUDE.md
+copilot-instructions.md
+PLAN.md

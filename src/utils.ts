@@ -42,14 +42,22 @@ export function secureRandom(): number {
 }
 
 /**
- * Generates a random number within a range
+ * Generates a random number within a range (inclusive min, exclusive max)
+ * @param min - Minimum value (inclusive)
+ * @param max - Maximum value (exclusive)
+ * @returns Random number in [min, max)
+ * @example randomInRange(5, 15) // e.g. 8.342
  */
 export function randomInRange(min: number, max: number): number {
   return min + secureRandom() * (max - min);
 }
 
 /**
- * Generates a random integer within a range (inclusive)
+ * Generates a random integer within a range (inclusive on both ends)
+ * @param min - Minimum integer value (inclusive)
+ * @param max - Maximum integer value (inclusive)
+ * @returns Random integer in [min, max]
+ * @example randomInt(1, 6) // e.g. 3
  */
 export function randomInt(min: number, max: number): number {
   return Math.floor(randomInRange(min, max + 1));
@@ -67,6 +75,11 @@ export function randomFromArray<T>(array: readonly T[]): T {
 
 /**
  * Clamps a value between min and max
+ * @param value - Value to clamp
+ * @param min - Minimum bound
+ * @param max - Maximum bound
+ * @returns Clamped value in [min, max]
+ * @example clamp(15, 0, 10) // 10
  */
 export function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
@@ -74,6 +87,11 @@ export function clamp(value: number, min: number, max: number): number {
 
 /**
  * Linear interpolation between two values
+ * @param start - Start value (t=0)
+ * @param end - End value (t=1)
+ * @param t - Interpolation factor, clamped to [0, 1]
+ * @returns Interpolated value
+ * @example lerp(0, 100, 0.5) // 50
  */
 export function lerp(start: number, end: number, t: number): number {
   return start + (end - start) * clamp(t, 0, 1);
@@ -81,6 +99,9 @@ export function lerp(start: number, end: number, t: number): number {
 
 /**
  * Converts degrees to radians
+ * @param degrees - Angle in degrees
+ * @returns Angle in radians
+ * @example degToRad(180) // Math.PI
  */
 export function degToRad(degrees: number): number {
   return degrees * MATH_CONSTANTS.DEG_TO_RAD;
@@ -88,6 +109,9 @@ export function degToRad(degrees: number): number {
 
 /**
  * Converts radians to degrees
+ * @param radians - Angle in radians
+ * @returns Angle in degrees
+ * @example radToDeg(Math.PI) // 180
  */
 export function radToDeg(radians: number): number {
   return radians * MATH_CONSTANTS.RAD_TO_DEG;
@@ -351,7 +375,13 @@ export function createDeferred<T = void>(): {
 }
 
 /**
- * Validates that a value is within a valid range
+ * Validates that a value is within a valid range, throwing RangeError if not
+ * @param value - The value to validate
+ * @param min - Minimum allowed value
+ * @param max - Maximum allowed value
+ * @param name - Name of the parameter (used in error message)
+ * @throws {RangeError} If value is outside [min, max]
+ * @example validateRange(5, 0, 10, 'opacity') // passes
  */
 export function validateRange(
   value: number,
@@ -365,7 +395,11 @@ export function validateRange(
 }
 
 /**
- * Calculates distance between two points
+ * Calculates the Euclidean distance between two 2D points
+ * @param p1 - First point
+ * @param p2 - Second point
+ * @returns Distance between the points
+ * @example distance({ x: 0, y: 0 }, { x: 3, y: 4 }) // 5
  */
 export function distance(p1: Point, p2: Point): number {
   const dx = p2.x - p1.x;
@@ -375,6 +409,9 @@ export function distance(p1: Point, p2: Point): number {
 
 /**
  * Normalizes an angle to be between 0 and 2π
+ * @param angle - Angle in radians (can be any value)
+ * @returns Normalized angle in [0, 2π)
+ * @example normalizeAngle(-Math.PI) // Math.PI
  */
 export function normalizeAngle(angle: number): number {
   const twoPi = MATH_CONSTANTS.TWO_PI;

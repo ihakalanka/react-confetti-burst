@@ -73,9 +73,11 @@ export {
   DEFAULT_PARTICLE,
   DEFAULT_CONFIG,
   DIRECTION_ANGLES,
-  EASING_FUNCTIONS,
   // COLOR_PALETTES moved to presets for tree-shaking
 } from './constants';
+
+// Easing functions (separated for tree-shaking)
+export { EASING_FUNCTIONS } from './easing';
 
 // Core engine (Basic)
 export {
@@ -84,6 +86,8 @@ export {
   fireFromElement,
   getActiveAnimationCount,
   forceCleanup,
+  setMaxPoolSize,
+  getMaxPoolSize,
 } from './confetti-engine';
 
 // Basic React hooks
@@ -137,20 +141,16 @@ export type { ConfettiTriggerHandle } from './components';
 */
 
 // ============================================================================
-// v1.2.0 - BUILT-IN PRESETS (Uncomment when releasing)
+// v1.2.0 - BUILT-IN PRESETS (Currently Released)
 // ============================================================================
 
-/*
 export type {
   PresetName,
   PresetConfig,
 } from './types';
 
-export {
-  PRESETS,
-  getPreset,
-} from './constants';
-*/
+// Re-export presets module for tree-shaking
+export * from './presets';
 
 // ============================================================================
 // v1.3.0 - CANVAS-CONFETTI API (Uncomment when releasing)
@@ -184,7 +184,6 @@ export type { ConfettiComponentProps } from './components';
 // v1.4.0 - CUSTOM SHAPES (Uncomment when releasing)
 // ============================================================================
 
-/*
 export type {
   DrawContext,
   CustomDrawFunction,
@@ -197,22 +196,28 @@ export type {
 
 export {
   EMOJI_SETS,
-} from './constants';
+} from './presets';
 
 export {
   shapeFromPath,
   shapeFromText,
   shapeFromImage,
   shapesFromEmoji,
+} from './shapes';
+
+/*
+// Predefined shapes and emoji sets are available for import from './shapes-data'
+// to enable tree-shaking for applications that don't use them
+export {
   pathShapes,
   emojiShapes,
-} from './shapes';
+} from './shapes-data';
+*/
 
 export type {
   ShapeFromPathOptions,
   ShapeFromTextOptions,
 } from './shapes';
-*/
 
 // ============================================================================
 // v1.5.0 - ADVANCED EFFECTS (Uncomment when releasing)

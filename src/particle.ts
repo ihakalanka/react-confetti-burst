@@ -28,12 +28,12 @@ import {
 } from './utils';
 
 import {
-  PERFORMANCE,
   STAR_POINTS,
   STAR_INNER_RATIO,
   MATH_CONSTANTS,
   DEFAULT_TRAIL,
   DEFAULT_GLOW,
+  PHYSICS_OPTIMIZATION,
 } from './constants';
 
 /**
@@ -42,21 +42,45 @@ import {
 let particleIdCounter = 0;
 
 /**
- * Image cache for loaded images
+ * Flag to log custom draw errors only once (avoid console spam)
  */
+let customDrawErrorLogged = false;
+
+/**
+ * Image cache for loaded images with LRU eviction
+ */
+const IMAGE_CACHE_MAX_SIZE = 50;
 const imageCache = new Map<string, HTMLImageElement>();
 
 /**
- * Loads an image and caches it
+ * Evicts the oldest entry from the image cache when it exceeds the max size.
+ * Map iterates in insertion order, so the first key is the oldest.
+ */
+function evictImageCache(): void {
+  if (imageCache.size > IMAGE_CACHE_MAX_SIZE) {
+    const firstKey = imageCache.keys().next().value;
+    if (firstKey !== undefined) {
+      imageCache.delete(firstKey);
+    }
+  }
+}
+
+/**
+ * Loads an image and caches it with LRU eviction
  */
 export function loadImage(src: string): Promise<HTMLImageElement> {
   if (imageCache.has(src)) {
-    return Promise.resolve(imageCache.get(src)!);
+    // Move to end (most recently used) by re-inserting
+    const img = imageCache.get(src)!;
+    imageCache.delete(src);
+    imageCache.set(src, img);
+    return Promise.resolve(img);
   }
 
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => {
+      evictImageCache();
       imageCache.set(src, img);
       resolve(img);
     };
@@ -94,6 +118,20 @@ export function createParticle(
     aspectRatioRange?: readonly [number, number];
   }
 ): ParticleState {
+  // Validation
+  if (colors.length === 0) {
+    throw new Error('Colors array cannot be empty');
+  }
+  if (shapes.length === 0) {
+    throw new Error('Shapes array cannot be empty');
+  }
+  if (sizeRange[0] > sizeRange[1]) {
+    throw new Error('Invalid size range');
+  }
+  if (opacityRange[0] > opacityRange[1]) {
+    throw new Error('Invalid opacity range');
+  }
+
   const size = randomInRange(sizeRange[0], sizeRange[1]);
   const opacity = randomInRange(opacityRange[0], opacityRange[1]);
   const colorInput = randomFromArray(colors);
@@ -101,7 +139,7 @@ export function createParticle(
     ('type' in colorInput) ? parseColor(colorInput.colors[0]) : colorInput as RGBAColor;
 
   // Calculate initial velocity components with slight randomization for natural spread
-  const velocityVariation = 1 + (secureRandom() - 0.5) * 0.3; // ±15% velocity variation
+  const velocityVariation = 1 + (secureRandom() - 0.5) * PHYSICS_OPTIMIZATION.VELOCITY_VARIATION_RANGE;
   const vx = Math.cos(angle) * velocity * velocityVariation;
   const vy = -Math.sin(angle) * velocity * velocityVariation; // Negative because canvas Y is inverted
 
@@ -177,100 +215,166 @@ export function updateParticle(
 
   // Update trail (store previous position) - only if enabled
   if (trailConfig?.enabled ?? DEFAULT_TRAIL.enabled) {
-    const trail = particle.trail;
-    trail.unshift({
-      x: particle.x,
-      y: particle.y,
-      opacity: particle.opacity,
-      size: particle.size,
-    });
-    const maxLength = trailConfig?.length ?? DEFAULT_TRAIL.length;
-    if (trail.length > maxLength) {
-      trail.pop();
-    }
+    updateParticleTrail(particle, trailConfig ?? DEFAULT_TRAIL);
   }
 
-  // OPTIMIZATION: Cache frequently accessed values
+  // Update physics in separate functions for better readability
+  updateParticleMovement(particle, dt, physics);
+  updateParticleRotation(particle, dt, physics);
+  updateParticleAppearance(particle, deltaTime, physics, fadeOut, scaleDown);
+
+  // Handle floor bounce
+  if (physics.floor !== null && physics.bounce > 0 && canvasHeight) {
+    handleFloorBounce(particle, physics, canvasHeight);
+  }
+
+  // Check if particle is dead
+  if (
+    particle.life <= 0 ||
+    particle.opacity < PHYSICS_OPTIMIZATION.MIN_OPACITY_THRESHOLD ||
+    particle.size < PHYSICS_OPTIMIZATION.MIN_SIZE_THRESHOLD
+  ) {
+    particle.active = false;
+  }
+}
+
+/**
+ * Updates particle trail data
+ */
+function updateParticleTrail(particle: ParticleState, trail: Partial<TrailConfig>): void {
+  const trailArray = particle.trail;
+  trailArray.unshift({
+    x: particle.x,
+    y: particle.y,
+    opacity: particle.opacity,
+    size: particle.size,
+  });
+  const maxLength = trail.length ?? DEFAULT_TRAIL.length;
+  if (trailArray.length > maxLength) {
+    trailArray.pop();
+  }
+}
+
+/**
+ * Updates particle movement physics (velocity, position)
+ */
+function updateParticleMovement(particle: ParticleState, dt: number, physics: PhysicsConfig): void {
   let vx = particle.vx;
   let vy = particle.vy;
   const tilt = particle.tilt;
   
   // Calculate velocity magnitude (squared to avoid sqrt when possible)
   const speedSq = vx * vx + vy * vy;
+
+  // Apply forces
+  applyGravity(particle, vy, tilt, physics, dt);
+  vy = particle.vy; // Update after gravity
   
-  // Apply gravity with slight variation based on particle orientation
-  // OPTIMIZATION: Use pre-computed sin approximation for small angles
-  const sinTilt = tilt - (tilt * tilt * tilt) * 0.166667; // Taylor series approximation
-  const gravityModifier = 1 + sinTilt * 0.15;
-  vy += physics.gravity * gravityModifier * dt;
-
-  // Flutter effect - paper-like oscillation
-  const flutter = physics.flutter ?? true;
-  if (flutter && speedSq > 1) {
-    const flutterSpeed = physics.flutterSpeed ?? 2.5;
-    const flutterIntensity = physics.flutterIntensity ?? 0.4;
-    
-    particle.flutterPhase += flutterSpeed * 0.05 * dt;
-    // OPTIMIZATION: Fast sin approximation for flutter
-    const flutterPhase = particle.flutterPhase;
-    const sinFlutter = flutterPhase - (flutterPhase * flutterPhase * flutterPhase) * 0.166667;
-    const flutterForce = sinFlutter * flutterIntensity * dt;
-    
-    // OPTIMIZATION: Use pre-computed cos approximation
-    const cosTilt = 1 - (tilt * tilt) * 0.5;
-    vx += flutterForce * cosTilt;
-    
-    // Paper sheets can catch air
-    const absSinTilt = sinTilt < 0 ? -sinTilt : sinTilt;
-    if (absSinTilt > 0.7) {
-      const absFlutter = flutterForce < 0 ? -flutterForce : flutterForce;
-      vy -= absFlutter * 0.3;
-    }
-  }
-
-  // Sway effect - side-to-side movement
-  const swayAmplitude = physics.swayAmplitude ?? 15;
-  const swayFrequency = physics.swayFrequency ?? 2;
-  particle.swayPhase += swayFrequency * 0.03 * dt;
-  const swayPhase = particle.swayPhase;
-  const swayForce = (swayPhase - (swayPhase * swayPhase * swayPhase) * 0.166667) * swayAmplitude * 0.01 * dt;
-  vx += swayForce;
-
-  // Apply wind with variation (use fast random)
-  const windVariation = physics.windVariation;
-  const windForce = physics.wind + (windVariation * (Math.random() - 0.5));
-  vx += windForce * dt;
-
-  // OPTIMIZATION: Combined drag calculation
-  const airResistance = physics.airResistance ?? 0.03;
-  const cosTilt = 1 - (tilt * tilt) * 0.5;
-  const absCos = cosTilt < 0 ? -cosTilt : cosTilt;
-  const totalDrag = physics.drag + absCos * airResistance;
+  applyFlutter(particle, vx, vy, tilt, speedSq, physics, dt);
+  vx = particle.vx; // Update after flutter
+  vy = particle.vy;
   
-  // OPTIMIZATION: Combined friction, decay, and drag in single multiplier
-  const speed = speedSq > 0 ? Math.sqrt(speedSq) : 0;
-  const dragFactor = Math.max(0.9, 1 - totalDrag * speed * 0.01);
-  const combinedFactor = dragFactor * physics.friction * physics.decay;
+  applySway(particle, vx, physics, dt);
+  vx = particle.vx;
   
-  vx *= combinedFactor;
-  vy *= combinedFactor;
+  applyWind(particle, physics, dt);
+  vx = particle.vx;
+  
+  applyDrag(particle, vx, vy, tilt, speedSq, physics);
+  vx = particle.vx;
+  vy = particle.vy;
 
   // Update position
   particle.x += vx * dt;
   particle.y += vy * dt;
-  
-  // Write back velocity
-  particle.vx = vx;
-  particle.vy = vy;
+}
 
+/**
+ * Applies gravity force with tilt-based variation
+ */
+function applyGravity(particle: ParticleState, vy: number, tilt: number, physics: PhysicsConfig, dt: number): void {
+  const sinTilt = tilt - (tilt * tilt * tilt) * PHYSICS_OPTIMIZATION.SIN_TAYLOR_COEFF;
+  const gravityModifier = 1 + sinTilt * PHYSICS_OPTIMIZATION.GRAVITY_TILT_MODIFIER;
+  particle.vy = vy + physics.gravity * gravityModifier * dt;
+}
+
+/**
+ * Applies flutter effect for paper-like oscillation
+ */
+function applyFlutter(particle: ParticleState, vx: number, vy: number, tilt: number, speedSq: number, physics: PhysicsConfig, dt: number): void {
+  const flutter = physics.flutter ?? true;
+  if (!flutter || speedSq <= 1) return;
+
+  const flutterSpeed = physics.flutterSpeed ?? 2.5;
+  const flutterIntensity = physics.flutterIntensity ?? 0.4;
+  
+  particle.flutterPhase += flutterSpeed * PHYSICS_OPTIMIZATION.FLUTTER_PHASE_SCALE * dt;
+  const flutterPhase = particle.flutterPhase;
+  const sinFlutter = flutterPhase - (flutterPhase * flutterPhase * flutterPhase) * PHYSICS_OPTIMIZATION.SIN_TAYLOR_COEFF;
+  const flutterForce = sinFlutter * flutterIntensity * dt;
+  
+  const cosTilt = 1 - (tilt * tilt) * PHYSICS_OPTIMIZATION.COS_TAYLOR_COEFF;
+  particle.vx = vx + flutterForce * cosTilt;
+  
+  // Paper sheets can catch air
+  const sinTilt = tilt - (tilt * tilt * tilt) * PHYSICS_OPTIMIZATION.SIN_TAYLOR_COEFF;
+  const absSinTilt = sinTilt < 0 ? -sinTilt : sinTilt;
+  if (absSinTilt > PHYSICS_OPTIMIZATION.FLUTTER_AIR_CATCH_THRESHOLD) {
+    const absFlutter = flutterForce < 0 ? -flutterForce : flutterForce;
+    particle.vy = vy - absFlutter * PHYSICS_OPTIMIZATION.FLUTTER_AIR_CATCH_MULTIPLIER;
+  }
+}
+
+/**
+ * Applies sway effect for side-to-side movement
+ */
+function applySway(particle: ParticleState, vx: number, physics: PhysicsConfig, dt: number): void {
+  const swayAmplitude = physics.swayAmplitude ?? 15;
+  const swayFrequency = physics.swayFrequency ?? 2;
+  particle.swayPhase += swayFrequency * PHYSICS_OPTIMIZATION.SWAY_PHASE_SCALE * dt;
+  const swayPhase = particle.swayPhase;
+  const swayForce = (swayPhase - (swayPhase * swayPhase * swayPhase) * PHYSICS_OPTIMIZATION.SIN_TAYLOR_COEFF) * swayAmplitude * PHYSICS_OPTIMIZATION.SWAY_FORCE_SCALE * dt;
+  particle.vx = vx + swayForce;
+}
+
+/**
+ * Applies wind force with variation
+ */
+function applyWind(particle: ParticleState, physics: PhysicsConfig, dt: number): void {
+  const windVariation = physics.windVariation;
+  const windForce = physics.wind + (windVariation * (Math.random() - 0.5));
+  particle.vx += windForce * dt;
+}
+
+/**
+ * Applies drag forces (air resistance, friction, decay)
+ */
+function applyDrag(particle: ParticleState, vx: number, vy: number, tilt: number, speedSq: number, physics: PhysicsConfig): void {
+  const airResistance = physics.airResistance ?? 0.03;
+  const cosTilt = 1 - (tilt * tilt) * PHYSICS_OPTIMIZATION.COS_TAYLOR_COEFF;
+  const absCos = cosTilt < 0 ? -cosTilt : cosTilt;
+  const totalDrag = physics.drag + absCos * airResistance;
+  
+  const speed = speedSq > 0 ? Math.sqrt(speedSq) : 0;
+  const dragFactor = Math.max(0.9, 1 - totalDrag * speed * 0.01);
+  const combinedFactor = dragFactor * physics.friction * physics.decay;
+  
+  particle.vx = vx * combinedFactor;
+  particle.vy = vy * combinedFactor;
+}
+
+/**
+ * Updates particle rotation and tilt
+ */
+function updateParticleRotation(particle: ParticleState, dt: number, physics: PhysicsConfig): void {
   // Update rotation with tumbling physics
   if (physics.tumble) {
-    particle.angularVelocity = (particle.angularVelocity + vx * 0.001 * dt) * 0.98;
+    particle.angularVelocity = (particle.angularVelocity + particle.vx * 0.001 * dt) * PHYSICS_OPTIMIZATION.ANGULAR_DAMPING;
     particle.rotation += (particle.rotationSpeed + particle.angularVelocity) * dt;
   }
 
-  // Update tilt - OPTIMIZATION: Use fast random
-  particle.tiltSpeed = (particle.tiltSpeed + (Math.random() - 0.5) * 0.002 * dt) * 0.995;
+  // Update tilt
+  particle.tiltSpeed = (particle.tiltSpeed + (Math.random() - 0.5) * 0.002 * dt) * PHYSICS_OPTIMIZATION.TILT_DAMPING;
   particle.tilt = (particle.tilt + particle.tiltSpeed * dt) % MATH_CONSTANTS.TWO_PI;
 
   // Update wobble phase for 3D effect
@@ -278,37 +382,30 @@ export function updateParticle(
     const wobblePhase = particle.wobblePhase + physics.wobbleSpeed * 0.1 * dt;
     particle.wobblePhase = wobblePhase;
     
-    // OPTIMIZATION: Fast abs(cos) and abs(sin) approximation
-    const cosWobble = 1 - (wobblePhase * wobblePhase) * 0.5;
-    const sinWobble = wobblePhase - (wobblePhase * wobblePhase * wobblePhase) * 0.166667;
+    const cosWobble = 1 - (wobblePhase * wobblePhase) * PHYSICS_OPTIMIZATION.COS_TAYLOR_COEFF;
+    const sinWobble = wobblePhase - (wobblePhase * wobblePhase * wobblePhase) * PHYSICS_OPTIMIZATION.SIN_TAYLOR_COEFF;
     particle.scaleX = 0.3 + 0.7 * (cosWobble < 0 ? -cosWobble : cosWobble);
     particle.scaleY = 0.3 + 0.7 * (sinWobble < 0 ? -sinWobble : sinWobble);
   }
 
   // Update shimmer phase
   particle.shimmerPhase += 0.1 * dt;
+}
 
-  // Handle floor bounce
-  if (physics.floor !== null && physics.bounce > 0 && canvasHeight) {
-    const floorY = physics.floor ?? canvasHeight;
-    const halfSize = particle.size * 0.5;
-    if (particle.y + halfSize >= floorY) {
-      particle.y = floorY - halfSize;
-      particle.vy = -particle.vy * physics.bounce;
-      particle.vx *= 0.85;
-      particle.rotationSpeed += (Math.random() - 0.5) * 0.1;
-    }
+/**
+ * Updates particle appearance (opacity, size, life)
+ */
+function updateParticleAppearance(particle: ParticleState, deltaTime: number, _physics: PhysicsConfig, fadeOut: boolean, scaleDown: boolean): void {
+  // Update life (only decrease, never increase)
+  if (deltaTime > 0) {
+    particle.life -= deltaTime;
   }
-
-  // Update life
-  particle.life -= deltaTime;
 
   // Calculate life progress (0 = start, 1 = end)
   const lifeProgress = 1 - particle.life / particle.maxLife;
 
   // Apply fade out (smoother fade curve)
   if (fadeOut) {
-    // OPTIMIZATION: Simplified smooth step
     const t = lifeProgress;
     const fadeProgress = t * t * (3 - 2 * t);
     particle.opacity = particle.originalOpacity * (1 - fadeProgress * 0.9);
@@ -318,14 +415,19 @@ export function updateParticle(
   if (scaleDown) {
     particle.size = particle.originalSize * (1 - lifeProgress * 0.5);
   }
+}
 
-  // Check if particle is dead
-  if (
-    particle.life <= 0 ||
-    particle.opacity < PERFORMANCE.MIN_OPACITY ||
-    particle.size < PERFORMANCE.MIN_SIZE
-  ) {
-    particle.active = false;
+/**
+ * Handles floor bounce physics
+ */
+function handleFloorBounce(particle: ParticleState, physics: PhysicsConfig, canvasHeight: number): void {
+  const floorY = physics.floor ?? canvasHeight;
+  const halfSize = particle.size * 0.5;
+  if (particle.y + halfSize >= floorY) {
+    particle.y = floorY - halfSize;
+    particle.vy = -particle.vy * physics.bounce;
+    particle.vx *= 0.85;
+    particle.rotationSpeed += (Math.random() - 0.5) * 0.1;
   }
 }
 
@@ -348,7 +450,7 @@ export function renderParticle(
   const { x, y, size, rotation, color, shape, opacity, tilt, aspectRatio, scaleX, scaleY, shimmerPhase } = particle;
   
   // OPTIMIZATION: Early exit for nearly invisible particles
-  if (opacity < 0.02) return;
+  if (opacity < PHYSICS_OPTIMIZATION.MIN_OPACITY_THRESHOLD) return;
   
   const trail = options?.trailConfig;
   const glow = options?.glowConfig;
@@ -377,14 +479,14 @@ export function renderParticle(
   }
 
   // OPTIMIZATION: Pre-calculate shimmer once
-  const shimmerBrightness = 1 + (shimmerPhase - Math.floor(shimmerPhase)) * 0.3 - 0.15;
+  const shimmerBrightness = 1 + (shimmerPhase - Math.floor(shimmerPhase)) * PHYSICS_OPTIMIZATION.SHIMMER_RANGE - PHYSICS_OPTIMIZATION.SHIMMER_OFFSET;
   
   // Calculate final opacity
-  const orientationOpacity = 0.7 + 0.3 * (scaleX * scaleY < 0 ? -(scaleX * scaleY) : scaleX * scaleY);
+  const orientationOpacity = PHYSICS_OPTIMIZATION.ORIENTATION_OPACITY_BASE + PHYSICS_OPTIMIZATION.ORIENTATION_OPACITY_SCALE * (scaleX * scaleY < 0 ? -(scaleX * scaleY) : scaleX * scaleY);
   const finalOpacity = opacity * color.a * orientationOpacity * (glowEnabled ? (glow?.intensity ?? 1) : 1);
   
   // OPTIMIZATION: Skip if too transparent
-  if (finalOpacity < 0.02) {
+  if (finalOpacity < PHYSICS_OPTIMIZATION.MIN_OPACITY_THRESHOLD) {
     ctx.restore();
     return;
   }
@@ -409,7 +511,15 @@ export function renderParticle(
       progress: 1 - particle.life / particle.maxLife,
       elapsed: options.elapsed ?? 0,
     };
-    options.customDraw(drawContext);
+    try {
+      options.customDraw(drawContext);
+    } catch (err) {
+      // Log once per error to avoid spamming, then skip gracefully
+      if (!customDrawErrorLogged) {
+        customDrawErrorLogged = true;
+        console.warn('Custom draw function threw an error:', err);
+      }
+    }
   } else {
     // OPTIMIZATION: Direct shape rendering with aspect ratio
     const effectiveAspectRatio = aspectRatio ?? 1;
