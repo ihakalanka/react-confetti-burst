@@ -131,3 +131,28 @@ export interface ExplosionHandle {
   readonly getState: () => 'running' | 'paused' | 'stopped';
   readonly promise: Promise<void>;
 }
+
+/**
+ * Confetti instance created by confetti.create()
+ */
+export interface ConfettiInstance {
+  (options?: CanvasConfettiOptions): Promise<void> | null;
+  reset(): void;
+}
+
+/**
+ * The confetti function type with all attached convenience methods.
+ * Provides proper TypeScript types for the functional API's
+ * attached methods like confetti.fireworks(), confetti.snow(), etc.
+ */
+export interface ConfettiFunction {
+  (options?: CanvasConfettiOptions): Promise<void> | null;
+  create(canvas: HTMLCanvasElement, options?: ConfettiCreateOptions): ConfettiInstance;
+  reset(): void;
+  fireworks(options?: Partial<CanvasConfettiOptions>): Promise<void>;
+  schoolPride(options?: Partial<CanvasConfettiOptions>): { cancel: () => void };
+  snow(options?: { duration?: number } & Partial<CanvasConfettiOptions>): { cancel: () => void };
+  burst(origin: { x: number; y: number }, options?: Partial<CanvasConfettiOptions>): Promise<void> | null;
+  destroyAll(): void;
+  getShapes(): string[];
+}

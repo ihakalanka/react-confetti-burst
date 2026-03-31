@@ -177,7 +177,11 @@ describe('ConfettiButton', () => {
 
     fireEvent.click(screen.getByRole('button'));
 
-    expect(mockFireFromElement).toHaveBeenCalled();
+    // ConfettiButton now uses fire() with origin computed from getBoundingClientRect
+    expect(mockFire).toHaveBeenCalledWith(
+      expect.objectContaining({ x: expect.any(Number), y: expect.any(Number) }),
+      undefined
+    );
   });
 
   it('should not fire confetti when fireOnClick is false', () => {
@@ -187,7 +191,7 @@ describe('ConfettiButton', () => {
 
     fireEvent.click(screen.getByRole('button'));
 
-    expect(mockFireFromElement).not.toHaveBeenCalled();
+    expect(mockFire).not.toHaveBeenCalled();
   });
 
   it('should call onClick handler', () => {
@@ -201,7 +205,7 @@ describe('ConfettiButton', () => {
     expect(handleClick).toHaveBeenCalled();
   });
 
-  it('should pass confettiOptions to fireFromElement', () => {
+  it('should pass confettiOptions to fire', () => {
     const options = { particleCount: 50 };
     render(
       <ConfettiButton confettiOptions={options}>Click me</ConfettiButton>
@@ -209,8 +213,8 @@ describe('ConfettiButton', () => {
 
     fireEvent.click(screen.getByRole('button'));
 
-    expect(mockFireFromElement).toHaveBeenCalledWith(
-      expect.any(HTMLButtonElement),
+    expect(mockFire).toHaveBeenCalledWith(
+      expect.objectContaining({ x: expect.any(Number), y: expect.any(Number) }),
       options
     );
   });

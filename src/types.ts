@@ -124,9 +124,26 @@ export interface TextShape {
 }
 
 /**
+ * Custom shape created from an image (URL or HTMLImageElement)
+ */
+export interface ImageShape {
+  readonly type: 'image';
+  /** Image source URL */
+  readonly src: string;
+  /** Pre-loaded image element */
+  readonly image?: HTMLImageElement;
+  /** Scale factor. Default: 1 */
+  readonly scalar?: number;
+  /** Display width */
+  readonly width?: number;
+  /** Display height */
+  readonly height?: number;
+}
+
+/**
  * Custom shape union type
  */
-export type CustomShape = PathShape | TextShape;
+export type CustomShape = PathShape | TextShape | ImageShape;
 
 /**
  * Shape types for confetti particles
@@ -431,7 +448,7 @@ export interface CanvasConfig {
   readonly height: number | null;
   /** Auto-resize on window resize. Default: true */
   readonly autoResize: boolean;
-  /** Resize debounce delay (ms). Default: 100 */
+  /** @deprecated Currently unused. Resize events are handled immediately via ResizeObserver. */
   readonly resizeDebounce: number;
   /** Frame rate cap (null = uncapped/60fps). Default: null */
   readonly frameRate: number | null;
@@ -763,6 +780,10 @@ export interface ConfettiButtonProps extends React.ButtonHTMLAttributes<HTMLButt
   readonly fireOnClick?: boolean;
   /** Children elements */
   readonly children: React.ReactNode;
+  /** Offset the burst origin from the button center (in pixels) */
+  readonly originOffset?: { x?: number; y?: number };
+  /** Shorthand direction for the burst (e.g., 'up', 'down') */
+  readonly direction?: BurstDirection;
 }
 
 /**
@@ -841,4 +862,29 @@ export interface PresetConfig {
   readonly name: PresetName;
   readonly options: ConfettiBurstOptions;
   readonly description: string;
+}
+
+/**
+ * Confetti instance created by confetti.create()
+ */
+export interface ConfettiInstance {
+  (options?: CanvasConfettiOptions): Promise<void> | null;
+  reset(): void;
+}
+
+/**
+ * The confetti function type with all attached convenience methods.
+ * This provides proper TypeScript types for the functional API's
+ * attached methods like confetti.fireworks(), confetti.snow(), etc.
+ */
+export interface ConfettiFunction {
+  (options?: CanvasConfettiOptions): Promise<void> | null;
+  create(canvas: HTMLCanvasElement, options?: ConfettiCreateOptions): ConfettiInstance;
+  reset(): void;
+  fireworks(options?: Partial<CanvasConfettiOptions>): Promise<void>;
+  schoolPride(options?: Partial<CanvasConfettiOptions>): { cancel: () => void };
+  snow(options?: { duration?: number } & Partial<CanvasConfettiOptions>): { cancel: () => void };
+  burst(origin: { x: number; y: number }, options?: Partial<CanvasConfettiOptions>): Promise<void> | null;
+  destroyAll(): void;
+  getShapes(): string[];
 }

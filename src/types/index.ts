@@ -25,6 +25,7 @@ export type {
 export type {
   PathShape,
   TextShape,
+  ImageShape,
   CustomShape,
   ParticleShape,
   ShapeInput,
@@ -61,6 +62,8 @@ export type {
   CanvasConfettiOptions,
   ConfettiCreateOptions,
   ExplosionHandle,
+  ConfettiInstance,
+  ConfettiFunction,
 } from './config';
 
 export type {

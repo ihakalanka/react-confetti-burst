@@ -40,7 +40,8 @@
     "typecheck": "tsc --noEmit",
     "prepare": "husky",
     "prepublishOnly": "npm run build",
-    "size": "node -e \"const f=require('fs');const e=f.statSync('dist/esm/index.js').size;const c=f.statSync('dist/cjs/index.js').size;console.log('ESM:',(e/1024).toFixed(2)+'KB','CJS:',(c/1024).toFixed(2)+'KB','Total:',((e+c)/1024).toFixed(2)+'KB')\""
+    "size": "node -e \"const f=require('fs');const e=f.statSync('dist/esm/index.js').size;const c=f.statSync('dist/cjs/index.js').size;console.log('ESM:',(e/1024).toFixed(2)+'KB','CJS:',(c/1024).toFixed(2)+'KB','Total:',((e+c)/1024).toFixed(2)+'KB')\"",
+    "playground": "npm run dev --prefix playground"
   },
   "keywords": [
     "react",

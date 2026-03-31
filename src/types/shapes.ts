@@ -33,9 +33,26 @@ export interface TextShape {
 }
 
 /**
+ * Custom shape created from an image (URL or HTMLImageElement)
+ */
+export interface ImageShape {
+  readonly type: 'image';
+  /** Image source URL */
+  readonly src: string;
+  /** Pre-loaded image element */
+  readonly image?: HTMLImageElement;
+  /** Scale factor. Default: 1 */
+  readonly scalar?: number;
+  /** Display width */
+  readonly width?: number;
+  /** Display height */
+  readonly height?: number;
+}
+
+/**
  * Custom shape union type
  */
-export type CustomShape = PathShape | TextShape;
+export type CustomShape = PathShape | TextShape | ImageShape;
 
 /**
  * Shape types for confetti particles

@@ -31,6 +31,7 @@ examples/
 
 # Demo (development only)
 demo/
+playground/
 
 # Docs (development only)
 docs/
@@ -48,6 +49,6 @@ dist/
 build/
 
 # Instructions
-CLAUDE.md
+AGENTS.md
 copilot-instructions.md
 PLAN.md

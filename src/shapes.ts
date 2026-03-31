@@ -7,7 +7,7 @@
  * @module shapes
  */
 
-import type { PathShape, TextShape, CustomShape } from './types';
+import type { PathShape, TextShape, ImageShape } from './types';
 
 /**
  * Options for creating a shape from an SVG path
@@ -159,30 +159,32 @@ export async function shapeFromImage(options: {
   readonly width?: number;
   readonly height?: number;
   readonly scalar?: number;
-}): Promise<CustomShape> {
-  const { src, scalar = 1 } = options;
+}): Promise<ImageShape> {
+  const { src, width, height, scalar = 1 } = options;
   
   // If it's already an image element, use it directly
   if (typeof src !== 'string') {
     return {
-      type: 'text', // Reuse text type for simplicity in renderer
-      text: '',
+      type: 'image',
+      src: src.src,
+      image: src,
       scalar,
-      // Store image reference in a custom way
-      fontFamily: `url(${src.src})`,
-    } as TextShape;
+      width,
+      height,
+    };
   }
   
   // Load the image to validate it exists
-  await loadImage(src);
+  const image = await loadImage(src);
   
   return {
-    type: 'text',
-    text: '',
+    type: 'image',
+    src,
+    image,
     scalar,
-    fontFamily: `url(${src})`,
-    color: undefined,
-  } as TextShape;
+    width,
+    height,
+  };
 }
 
 /**

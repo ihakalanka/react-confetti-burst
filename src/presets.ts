@@ -4,8 +4,8 @@
  * and reduce bundle size for users who don't use presets.
  */
 
-import type { PresetConfig, PresetName } from './types';
-import { DEFAULT_COLORS } from './constants';
+import type { PresetConfig, PresetName, CanvasConfettiOptions, ConfettiBurstOptions } from './types';
+import { DEFAULT_COLORS, DIRECTION_ANGLES } from './constants';
 
 /**
  * Color palettes for presets
@@ -384,4 +384,114 @@ export function getPreset(name: PresetName): PresetConfig {
  */
 export function getPresetNames(): readonly PresetName[] {
   return Object.keys(PRESETS) as PresetName[];
+}
+
+/**
+ * Convert a preset's ConfettiBurstOptions to CanvasConfettiOptions
+ * for use with the confetti() functional API.
+ *
+ * Presets use the nested ConfettiBurstOptions format (particle.colors,
+ * physics.gravity, direction.spread), but confetti() expects the flat
+ * CanvasConfettiOptions format (colors, gravity, spread).
+ *
+ * @example
+ * ```ts
+ * import { getPreset, presetToCanvasOptions, confetti } from 'react-confetti-burst';
+ *
+ * const preset = getPreset('celebration');
+ * confetti(presetToCanvasOptions(preset.options));
+ * ```
+ *
+ * @param options - ConfettiBurstOptions from a preset (or any hook/component options)
+ * @returns Equivalent CanvasConfettiOptions for use with confetti()
+ */
+export function presetToCanvasOptions(options: ConfettiBurstOptions): CanvasConfettiOptions {
+  const result: Record<string, unknown> = {};
+
+  // particleCount maps directly
+  if (options.particleCount !== undefined) {
+    result.particleCount = options.particleCount;
+  }
+
+  // particle.colors -> colors
+  if (options.particle?.colors) {
+    result.colors = options.particle.colors;
+  }
+
+  // particle.shapes -> shapes
+  if (options.particle?.shapes) {
+    result.shapes = options.particle.shapes;
+  }
+
+  // particle.size -> size (use midpoint of [min, max] range)
+  if (options.particle?.size) {
+    const size = options.particle.size;
+    if (Array.isArray(size)) {
+      result.size = (size[0] + size[1]) / 2;
+    }
+  }
+
+  // physics.gravity -> gravity
+  if (options.physics?.gravity !== undefined) {
+    result.gravity = options.physics.gravity;
+  }
+
+  // physics.wind -> drift (approximate mapping)
+  if (options.physics?.wind !== undefined) {
+    result.drift = options.physics.wind;
+  }
+
+  // direction.spread -> spread
+  if (options.direction?.spread !== undefined) {
+    result.spread = options.direction.spread;
+  }
+
+  // direction.direction -> angle
+  if (options.direction?.direction) {
+    const dir = options.direction.direction;
+    if (dir === 'custom' && options.direction.angle !== undefined) {
+      result.angle = options.direction.angle;
+    } else if (dir !== 'radial' && dir !== 'custom') {
+      result.angle = DIRECTION_ANGLES[dir];
+    }
+    // radial -> no specific angle, use default spread: 360
+    if (dir === 'radial' && result.spread === undefined) {
+      result.spread = 360;
+    }
+  }
+
+  // direction.velocity -> startVelocity (use midpoint)
+  if (options.direction?.velocity) {
+    const vel = options.direction.velocity;
+    if (Array.isArray(vel)) {
+      result.startVelocity = (vel[0] + vel[1]) / 2;
+    }
+  }
+
+  // scalar maps directly
+  if (options.scalar !== undefined) {
+    result.scalar = options.scalar;
+  }
+
+  // flat maps directly
+  if (options.flat !== undefined) {
+    result.flat = options.flat;
+  }
+
+  // drift maps directly
+  if (options.drift !== undefined) {
+    result.drift = options.drift;
+  }
+
+  // ticks maps directly
+  if (options.ticks !== undefined) {
+    result.ticks = options.ticks;
+  }
+
+  // zIndex maps directly
+  if (options.zIndex !== undefined) {
+    result.zIndex = options.zIndex;
+  }
+
+  return result as CanvasConfettiOptions;
 }

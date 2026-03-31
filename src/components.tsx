@@ -159,13 +159,15 @@ export const ConfettiButton = forwardRef<HTMLButtonElement, ConfettiButtonProps>
       children,
       confettiOptions,
       fireOnClick = true,
+      originOffset,
+      direction,
       onClick,
       ...buttonProps
     },
     forwardedRef
   ) => {
     const internalRef = useRef<HTMLButtonElement>(null);
-    const { fireFromElement } = useConfetti();
+    const { fire } = useConfetti();
 
     // Combine refs
     const setRef = useCallback(
@@ -184,11 +186,28 @@ export const ConfettiButton = forwardRef<HTMLButtonElement, ConfettiButtonProps>
     const handleClick = useCallback(
       (event: React.MouseEvent<HTMLButtonElement>) => {
         if (fireOnClick && internalRef.current) {
-          fireFromElement(internalRef.current, confettiOptions);
+          const rect = internalRef.current.getBoundingClientRect();
+          const origin = {
+            x: rect.left + rect.width / 2 + (originOffset?.x ?? 0),
+            y: rect.top + rect.height / 2 + (originOffset?.y ?? 0),
+          };
+
+          // Merge direction shorthand into confettiOptions if provided
+          const mergedOptions = direction
+            ? {
+                ...confettiOptions,
+                direction: {
+                  ...confettiOptions?.direction,
+                  direction,
+                },
+              }
+            : confettiOptions;
+
+          fire(origin, mergedOptions);
         }
         onClick?.(event);
       },
-      [fireOnClick, fireFromElement, confettiOptions, onClick]
+      [fireOnClick, fire, confettiOptions, originOffset, direction, onClick]
     );
 
     return (
@@ -439,6 +458,24 @@ export function Confetti({
   const handleRef = useRef<ExplosionHandle | null>(null);
   const hasStarted = useRef(false);
 
+  // Store latest options in a ref to avoid restarting animation on every render
+  const optionsRef = useRef({
+    width, height, numberOfPieces, confettiSource,
+    initialVelocityX, initialVelocityY, recycle, gravity,
+    wind, opacity, drawShape, tweenDuration, colors,
+    onConfettiComplete, frameRate,
+  });
+  optionsRef.current = {
+    width, height, numberOfPieces, confettiSource,
+    initialVelocityX, initialVelocityY, recycle, gravity,
+    wind, opacity, drawShape, tweenDuration, colors,
+    onConfettiComplete, frameRate,
+  };
+
+  // Keep fire ref stable to avoid effect re-triggers
+  const fireRef = useRef(fire);
+  fireRef.current = fire;
+
   useEffect(() => {
     if (!run) {
       if (handleRef.current) {
@@ -452,53 +489,55 @@ export function Confetti({
     if (hasStarted.current) return;
     hasStarted.current = true;
 
+    const opts = optionsRef.current;
+
     // Calculate spawn area
-    const spawnArea = confettiSource 
+    const spawnArea = opts.confettiSource 
       ? {
           type: 'rect' as const,
-          x: confettiSource.x,
-          y: confettiSource.y,
-          w: confettiSource.w ?? window.innerWidth,
-          h: confettiSource.h ?? 10,
+          x: opts.confettiSource.x,
+          y: opts.confettiSource.y,
+          w: opts.confettiSource.w ?? window.innerWidth,
+          h: opts.confettiSource.h ?? 10,
         }
       : {
           type: 'rect' as const,
           x: 0,
           y: 0,
-          w: width ?? window.innerWidth,
+          w: opts.width ?? window.innerWidth,
           h: 10,
         };
 
     // Convert velocity props
-    const velX = typeof initialVelocityX === 'number' 
-      ? [initialVelocityX * 0.5, initialVelocityX * 1.5]
-      : initialVelocityX 
-        ? [initialVelocityX.min, initialVelocityX.max]
+    const velX = typeof opts.initialVelocityX === 'number' 
+      ? [opts.initialVelocityX * 0.5, opts.initialVelocityX * 1.5]
+      : opts.initialVelocityX 
+        ? [opts.initialVelocityX.min, opts.initialVelocityX.max]
         : [4, 10];
 
-    const velY = typeof initialVelocityY === 'number'
-      ? [initialVelocityY * 0.5, initialVelocityY * 1.5]
-      : initialVelocityY
-        ? [initialVelocityY.min, initialVelocityY.max]
+    const velY = typeof opts.initialVelocityY === 'number'
+      ? [opts.initialVelocityY * 0.5, opts.initialVelocityY * 1.5]
+      : opts.initialVelocityY
+        ? [opts.initialVelocityY.min, opts.initialVelocityY.max]
         : [10, 30];
 
     // Start the continuous confetti
-    const centerX = (width ?? window.innerWidth) / 2;
+    const centerX = (opts.width ?? window.innerWidth) / 2;
     const centerY = 0;
 
-    handleRef.current = fire(
+    handleRef.current = fireRef.current(
       { x: centerX, y: centerY },
       {
-        particleCount: numberOfPieces,
+        particleCount: opts.numberOfPieces,
         particle: {
-          colors: colors ?? ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff'],
-          opacity: [opacity * 0.8, opacity],
+          colors: opts.colors ?? ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff'],
+          opacity: [opts.opacity * 0.8, opts.opacity],
           shapes: ['square', 'circle', 'rectangle'],
-          drawShape,
+          drawShape: opts.drawShape,
         },
         physics: {
-          gravity: gravity * 10, // Scale to match react-confetti
-          wind: wind * 5,
+          gravity: opts.gravity * 10, // Scale to match react-confetti
+          wind: opts.wind * 5,
           windVariation: velX[1] - velX[0], // Use horizontal velocity as wind variation
         },
         direction: {
@@ -507,19 +546,19 @@ export function Confetti({
         mode: 'continuous' as any,
         spawnArea,
         continuous: {
-          recycle,
-          numberOfPieces,
+          recycle: opts.recycle,
+          numberOfPieces: opts.numberOfPieces,
           spawnRate: 30,
           run,
-          tweenDuration,
+          tweenDuration: opts.tweenDuration,
         },
         canvas: {
-          width,
-          height,
-          frameRate,
-          autoResize: !width && !height,
+          width: opts.width,
+          height: opts.height,
+          frameRate: opts.frameRate,
+          autoResize: !opts.width && !opts.height,
         },
-        onComplete: onConfettiComplete,
+        onComplete: opts.onConfettiComplete,
       } as any
     );
 
@@ -529,33 +568,10 @@ export function Confetti({
         handleRef.current = null;
       }
     };
-  }, [
-    run, 
-    width, 
-    height, 
-    numberOfPieces, 
-    confettiSource, 
-    initialVelocityX, 
-    initialVelocityY, 
-    recycle, 
-    gravity, 
-    wind, 
-    opacity, 
-    drawShape, 
-    tweenDuration, 
-    colors, 
-    onConfettiComplete, 
-    frameRate,
-    fire,
-  ]);
-
-  // Handle recycle changes
-  useEffect(() => {
-    if (handleRef.current && !recycle) {
-      // Stop recycling - animation will end naturally
-      // This is handled in the engine
-    }
-  }, [recycle]);
+  // Only re-trigger the effect when `run` changes.
+  // Other options are read from optionsRef.current at fire time.
+   
+  }, [run]);
 
   return null;
 }

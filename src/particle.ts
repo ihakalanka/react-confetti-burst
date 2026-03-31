@@ -211,7 +211,7 @@ export function updateParticle(
 ): void {
   if (!particle.active) return;
 
-  const dt = deltaTime * 0.05988; // Pre-computed: deltaTime / 16.67
+  const dt = deltaTime * 0.059988; // Pre-computed: deltaTime / 16.67
 
   // Update trail (store previous position) - only if enabled
   if (trailConfig?.enabled ?? DEFAULT_TRAIL.enabled) {
@@ -293,7 +293,7 @@ function updateParticleMovement(particle: ParticleState, dt: number, physics: Ph
  * Applies gravity force with tilt-based variation
  */
 function applyGravity(particle: ParticleState, vy: number, tilt: number, physics: PhysicsConfig, dt: number): void {
-  const sinTilt = tilt - (tilt * tilt * tilt) * PHYSICS_OPTIMIZATION.SIN_TAYLOR_COEFF;
+  const sinTilt = Math.sin(tilt);
   const gravityModifier = 1 + sinTilt * PHYSICS_OPTIMIZATION.GRAVITY_TILT_MODIFIER;
   particle.vy = vy + physics.gravity * gravityModifier * dt;
 }
@@ -308,16 +308,16 @@ function applyFlutter(particle: ParticleState, vx: number, vy: number, tilt: num
   const flutterSpeed = physics.flutterSpeed ?? 2.5;
   const flutterIntensity = physics.flutterIntensity ?? 0.4;
   
-  particle.flutterPhase += flutterSpeed * PHYSICS_OPTIMIZATION.FLUTTER_PHASE_SCALE * dt;
+  particle.flutterPhase = (particle.flutterPhase + flutterSpeed * PHYSICS_OPTIMIZATION.FLUTTER_PHASE_SCALE * dt) % MATH_CONSTANTS.TWO_PI;
   const flutterPhase = particle.flutterPhase;
-  const sinFlutter = flutterPhase - (flutterPhase * flutterPhase * flutterPhase) * PHYSICS_OPTIMIZATION.SIN_TAYLOR_COEFF;
+  const sinFlutter = Math.sin(flutterPhase);
   const flutterForce = sinFlutter * flutterIntensity * dt;
-  
-  const cosTilt = 1 - (tilt * tilt) * PHYSICS_OPTIMIZATION.COS_TAYLOR_COEFF;
+
+  const cosTilt = Math.cos(tilt);
   particle.vx = vx + flutterForce * cosTilt;
-  
+
   // Paper sheets can catch air
-  const sinTilt = tilt - (tilt * tilt * tilt) * PHYSICS_OPTIMIZATION.SIN_TAYLOR_COEFF;
+  const sinTilt = Math.sin(tilt);
   const absSinTilt = sinTilt < 0 ? -sinTilt : sinTilt;
   if (absSinTilt > PHYSICS_OPTIMIZATION.FLUTTER_AIR_CATCH_THRESHOLD) {
     const absFlutter = flutterForce < 0 ? -flutterForce : flutterForce;
@@ -331,9 +331,9 @@ function applyFlutter(particle: ParticleState, vx: number, vy: number, tilt: num
 function applySway(particle: ParticleState, vx: number, physics: PhysicsConfig, dt: number): void {
   const swayAmplitude = physics.swayAmplitude ?? 15;
   const swayFrequency = physics.swayFrequency ?? 2;
-  particle.swayPhase += swayFrequency * PHYSICS_OPTIMIZATION.SWAY_PHASE_SCALE * dt;
+  particle.swayPhase = (particle.swayPhase + swayFrequency * PHYSICS_OPTIMIZATION.SWAY_PHASE_SCALE * dt) % MATH_CONSTANTS.TWO_PI;
   const swayPhase = particle.swayPhase;
-  const swayForce = (swayPhase - (swayPhase * swayPhase * swayPhase) * PHYSICS_OPTIMIZATION.SIN_TAYLOR_COEFF) * swayAmplitude * PHYSICS_OPTIMIZATION.SWAY_FORCE_SCALE * dt;
+  const swayForce = Math.sin(swayPhase) * swayAmplitude * PHYSICS_OPTIMIZATION.SWAY_FORCE_SCALE * dt;
   particle.vx = vx + swayForce;
 }
 
@@ -342,7 +342,7 @@ function applySway(particle: ParticleState, vx: number, physics: PhysicsConfig, 
  */
 function applyWind(particle: ParticleState, physics: PhysicsConfig, dt: number): void {
   const windVariation = physics.windVariation;
-  const windForce = physics.wind + (windVariation * (Math.random() - 0.5));
+  const windForce = physics.wind + (windVariation * (secureRandom() - 0.5));
   particle.vx += windForce * dt;
 }
 
@@ -351,7 +351,7 @@ function applyWind(particle: ParticleState, physics: PhysicsConfig, dt: number):
  */
 function applyDrag(particle: ParticleState, vx: number, vy: number, tilt: number, speedSq: number, physics: PhysicsConfig): void {
   const airResistance = physics.airResistance ?? 0.03;
-  const cosTilt = 1 - (tilt * tilt) * PHYSICS_OPTIMIZATION.COS_TAYLOR_COEFF;
+  const cosTilt = Math.cos(tilt);
   const absCos = cosTilt < 0 ? -cosTilt : cosTilt;
   const totalDrag = physics.drag + absCos * airResistance;
   
@@ -374,22 +374,24 @@ function updateParticleRotation(particle: ParticleState, dt: number, physics: Ph
   }
 
   // Update tilt
-  particle.tiltSpeed = (particle.tiltSpeed + (Math.random() - 0.5) * 0.002 * dt) * PHYSICS_OPTIMIZATION.TILT_DAMPING;
+  particle.tiltSpeed = (particle.tiltSpeed + (secureRandom() - 0.5) * 0.002 * dt) * PHYSICS_OPTIMIZATION.TILT_DAMPING;
   particle.tilt = (particle.tilt + particle.tiltSpeed * dt) % MATH_CONSTANTS.TWO_PI;
 
   // Update wobble phase for 3D effect
   if (physics.wobble) {
-    const wobblePhase = particle.wobblePhase + physics.wobbleSpeed * 0.1 * dt;
-    particle.wobblePhase = wobblePhase;
-    
-    const cosWobble = 1 - (wobblePhase * wobblePhase) * PHYSICS_OPTIMIZATION.COS_TAYLOR_COEFF;
-    const sinWobble = wobblePhase - (wobblePhase * wobblePhase * wobblePhase) * PHYSICS_OPTIMIZATION.SIN_TAYLOR_COEFF;
+    // Normalize wobblePhase to [0, 2π] to prevent unbounded growth
+    // which would break any polynomial approximation
+    particle.wobblePhase = (particle.wobblePhase + physics.wobbleSpeed * 0.1 * dt) % MATH_CONSTANTS.TWO_PI;
+    const wobblePhase = particle.wobblePhase;
+
+    const cosWobble = Math.cos(wobblePhase);
+    const sinWobble = Math.sin(wobblePhase);
     particle.scaleX = 0.3 + 0.7 * (cosWobble < 0 ? -cosWobble : cosWobble);
     particle.scaleY = 0.3 + 0.7 * (sinWobble < 0 ? -sinWobble : sinWobble);
   }
 
   // Update shimmer phase
-  particle.shimmerPhase += 0.1 * dt;
+  particle.shimmerPhase = (particle.shimmerPhase + 0.1 * dt) % MATH_CONSTANTS.TWO_PI;
 }
 
 /**
@@ -427,7 +429,7 @@ function handleFloorBounce(particle: ParticleState, physics: PhysicsConfig, canv
     particle.y = floorY - halfSize;
     particle.vy = -particle.vy * physics.bounce;
     particle.vx *= 0.85;
-    particle.rotationSpeed += (Math.random() - 0.5) * 0.1;
+    particle.rotationSpeed += (secureRandom() - 0.5) * 0.1;
   }
 }
 
@@ -592,7 +594,7 @@ function renderTrail(
 
     if (alpha > 0.01 && lineWidth > 0.1) {
       ctx.beginPath();
-      ctx.strokeStyle = rgbaToString({ ...particle.color, a: alpha });
+      ctx.strokeStyle = rgbaToString({ r: particle.color.r, g: particle.color.g, b: particle.color.b, a: alpha });
       ctx.lineWidth = lineWidth;
       ctx.moveTo(current.x, current.y);
       ctx.lineTo(next.x, next.y);
@@ -772,7 +774,11 @@ export function areAllParticlesInactive(particles: readonly ParticleState[]): bo
  * Counts active particles
  */
 export function countActiveParticles(particles: readonly ParticleState[]): number {
-  return particles.filter(p => p.active).length;
+  let count = 0;
+  for (let i = 0; i < particles.length; i++) {
+    if (particles[i].active) count++;
+  }
+  return count;
 }
 
 /**

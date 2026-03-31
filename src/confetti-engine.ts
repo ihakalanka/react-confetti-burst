@@ -138,6 +138,7 @@ for (let i = 0; i < ANGLE_CACHE_SIZE; i++) {
  * Fast sine lookup for integer degrees
  */
 export function fastSin(degrees: number): number {
+  if (!isFinite(degrees)) return 0;
   const idx = ((degrees % 360) + 360) % 360;
   return SIN_CACHE[Math.floor(idx)];
 }
@@ -146,6 +147,7 @@ export function fastSin(degrees: number): number {
  * Fast cosine lookup for integer degrees
  */
 export function fastCos(degrees: number): number {
+  if (!isFinite(degrees)) return 1;
   const idx = ((degrees % 360) + 360) % 360;
   return COS_CACHE[Math.floor(idx)];
 }
@@ -194,7 +196,8 @@ function getOrCreateCanvas(zIndex: number, canvasConfig?: Partial<CanvasConfig>)
           globalCanvas.height = height * dpr;
           globalCanvas.style.width = `${width}px`;
           globalCanvas.style.height = `${height}px`;
-          globalCtx.scale(dpr, dpr);
+          // canvas.width assignment resets transform, so scale is safe here
+          globalCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
         }
       };
       window.addEventListener('resize', resizeHandler);
@@ -213,7 +216,7 @@ function getOrCreateCanvas(zIndex: number, canvasConfig?: Partial<CanvasConfig>)
     globalCanvas.height = height * dpr;
     globalCanvas.style.width = `${width}px`;
     globalCanvas.style.height = `${height}px`;
-    globalCtx!.scale(dpr, dpr);
+    globalCtx!.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 
   return {
@@ -306,12 +309,12 @@ export class ConfettiEngine {
     this.config = mergeConfig(options);
     
     // Set up mode-specific configuration
-    this.mode = (options as any)?.mode ?? 'burst';
-    this.spawnArea = (options as any)?.spawnArea;
-    this.continuousConfig = { ...DEFAULT_CONTINUOUS, ...(options as any)?.continuous };
-    this.fireworkConfig = { ...DEFAULT_FIREWORK, ...(options as any)?.firework };
-    this.canvasConfig = { ...DEFAULT_CANVAS, ...(options as any)?.canvas };
-    this.drawShape = (options as any)?.particle?.drawShape;
+    this.mode = options?.mode ?? 'burst';
+    this.spawnArea = options?.spawnArea as SpawnArea | undefined;
+    this.continuousConfig = { ...DEFAULT_CONTINUOUS, ...options?.continuous };
+    this.fireworkConfig = { ...DEFAULT_FIREWORK, ...options?.firework };
+    this.canvasConfig = { ...DEFAULT_CANVAS, ...options?.canvas };
+    this.drawShape = options?.particle?.drawShape;
     
     // Frame rate control
     if (this.canvasConfig.frameRate) {
@@ -821,6 +824,10 @@ export class ConfettiEngine {
    * Clears all particles
    */
   clear(): void {
+    const particles = this.particles;
+    for (let i = particles.length - 1; i >= 0; i--) {
+      returnToPool(particles[i]);
+    }
     this.particles = [];
   }
 
@@ -899,6 +906,10 @@ export function getActiveAnimationCount(): number {
  * Forces cleanup of all resources
  */
 export function forceCleanup(): void {
+  if (resizeHandler) {
+    window.removeEventListener('resize', resizeHandler);
+    resizeHandler = null;
+  }
   if (globalCanvas) {
     globalCanvas.remove();
     globalCanvas = null;

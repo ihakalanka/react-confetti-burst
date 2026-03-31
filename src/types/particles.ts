@@ -3,7 +3,7 @@
  */
 
 import type { RGBAColor, TrailPosition } from './core';
-import type { ParticleShape, CustomShape } from './shapes';
+import type { ParticleShape } from './shapes';
 
 /**
  * Custom draw function context

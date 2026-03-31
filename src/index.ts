@@ -122,10 +122,9 @@ export {
 export { confetti, confetti as default } from './confetti';
 
 // ============================================================================
-// v1.1.0 - REACT HOOKS (Uncomment when releasing)
+// v1.1.0 - REACT HOOKS
 // ============================================================================
 
-/*
 export {
   useConfettiTrigger,
   useConfettiOnCondition,
@@ -138,7 +137,6 @@ export {
 } from './components';
 
 export type { ConfettiTriggerHandle } from './components';
-*/
 
 // ============================================================================
 // v1.2.0 - BUILT-IN PRESETS (Currently Released)
@@ -153,10 +151,9 @@ export type {
 export * from './presets';
 
 // ============================================================================
-// v1.3.0 - CANVAS-CONFETTI API (Uncomment when releasing)
+// v1.3.0 - CANVAS-CONFETTI API
 // ============================================================================
 
-/*
 export type {
   NormalizedOrigin,
   AccessibilityConfig,
@@ -164,6 +161,8 @@ export type {
   ConfettiCreateOptions,
   CanvasConfig,
   ConfettiProps,
+  ConfettiFunction,
+  ConfettiInstance,
 } from './types';
 
 export {
@@ -178,7 +177,6 @@ export {
 } from './components';
 
 export type { ConfettiComponentProps } from './components';
-*/
 
 // ============================================================================
 // v1.4.0 - CUSTOM SHAPES (Uncomment when releasing)
@@ -220,10 +218,9 @@ export type {
 } from './shapes';
 
 // ============================================================================
-// v1.5.0 - ADVANCED EFFECTS (Uncomment when releasing)
+// v1.5.0 - ADVANCED EFFECTS
 // ============================================================================
 
-/*
 export type {
   EffectMode,
   SpawnArea,
@@ -232,6 +229,7 @@ export type {
   ImageParticle,
   ContinuousConfig,
   FireworkConfig,
+  ImageShape,
 } from './types';
 
 export {
@@ -240,7 +238,6 @@ export {
   DEFAULT_CONTINUOUS,
   DEFAULT_FIREWORK,
 } from './constants';
-*/
 
 // ============================================================================
 // v1.6.0 - PARTICLE UTILITIES (Uncomment when releasing)

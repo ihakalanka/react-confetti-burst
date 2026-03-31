@@ -47,6 +47,7 @@ export class Container implements IContainer {
   private _resolvePromise: (() => void) | null = null;
   private _isOwnCanvas = false;
   private _resizeObserver: ResizeObserver | null = null;
+  private _usesWindowResize = false;
 
   constructor(options: IContainerOptions = {}) {
     this.id = `confetti-${generateId()}`;
@@ -110,8 +111,10 @@ export class Container implements IContainer {
     }
 
     const particleCount = options.particleCount ?? 100;
-    const canvasWidth = this.canvas.width;
-    const canvasHeight = this.canvas.height;
+    // Use CSS pixel dimensions (not device pixels) since ctx is already scaled by pixelRatio
+    const pixelRatio = getPixelRatio();
+    const canvasWidth = this.canvas.width / pixelRatio;
+    const canvasHeight = this.canvas.height / pixelRatio;
 
     // Create particles
     for (let i = 0; i < particleCount; i++) {
@@ -189,6 +192,12 @@ export class Container implements IContainer {
       this._resizeObserver = null;
     }
 
+    // Remove window resize listener if used as fallback
+    if (this._usesWindowResize) {
+      window.removeEventListener('resize', this._handleResize);
+      this._usesWindowResize = false;
+    }
+
     // Remove canvas if we created it
     if (this._isOwnCanvas && this.canvas.parentNode) {
       this.canvas.parentNode.removeChild(this.canvas);
@@ -206,8 +215,12 @@ export class Container implements IContainer {
     const delta = calculateDelta(timestamp, this._lastTimestamp);
     this._lastTimestamp = timestamp;
 
-    // Clear canvas
+    // Reset transform, clear canvas, and re-apply pixel ratio scale each frame
+    // This prevents transform accumulation from any save/restore imbalance
+    const pixelRatio = getPixelRatio();
+    this.ctx.setTransform(1, 0, 0, 1, 0, 0);
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    this.ctx.scale(pixelRatio, pixelRatio);
 
     // Update and draw particles
     let hasActiveParticles = false;
@@ -346,6 +359,7 @@ export class Container implements IContainer {
   private _setupResizeHandling(): void {
     if (typeof ResizeObserver === 'undefined') {
       // Fallback to window resize
+      this._usesWindowResize = true;
       window.addEventListener('resize', this._handleResize);
       return;
     }
@@ -393,7 +407,8 @@ export class Container implements IContainer {
       this.canvas.height = rect.height * pixelRatio;
     }
 
-    // Scale context for pixel ratio
-    this.ctx.scale(pixelRatio, pixelRatio);
+    // Reset transform and scale for pixel ratio (canvas.width assignment resets it,
+    // but we reset explicitly to be safe in case dimensions didn't change)
+    this.ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
   }
 }

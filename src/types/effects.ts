@@ -56,6 +56,7 @@ export interface CanvasConfig {
   readonly width: number | null;
   readonly height: number | null;
   readonly autoResize: boolean;
+  /** @deprecated Currently unused. Resize events are handled immediately via ResizeObserver. */
   readonly resizeDebounce: number;
   readonly frameRate: number | null;
   readonly pixelRatio: number | null;

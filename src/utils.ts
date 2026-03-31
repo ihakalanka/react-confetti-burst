@@ -214,6 +214,11 @@ function parseRgbColor(rgb: string): RGBAColor {
 }
 
 /**
+ * Cache for parsed named colors resolved via canvas
+ */
+const namedColorCache = new Map<string, RGBAColor>();
+
+/**
  * Parses named colors using a canvas context
  */
 function parseNamedColor(name: string): RGBAColor {
@@ -236,6 +241,12 @@ function parseNamedColor(name: string): RGBAColor {
     return namedColors[name];
   }
 
+  // Check cache for previously resolved named colors
+  const cached = namedColorCache.get(name);
+  if (cached) {
+    return cached;
+  }
+
   // Use canvas for other named colors (browser only)
   if (typeof document !== 'undefined') {
     try {
@@ -248,7 +259,9 @@ function parseNamedColor(name: string): RGBAColor {
         ctx.fillStyle = name;
         ctx.fillRect(0, 0, 1, 1);
         const data = ctx.getImageData(0, 0, 1, 1).data;
-        return { r: data[0], g: data[1], b: data[2], a: data[3] / 255 };
+        const color = { r: data[0], g: data[1], b: data[2], a: data[3] / 255 };
+        namedColorCache.set(name, color);
+        return color;
       }
     } catch {
       // Canvas not available

@@ -14,6 +14,8 @@ import type {
   IDelta,
 } from './interfaces';
 
+import { getRandom } from './utils';
+
 const DOUBLE_PI = Math.PI * 2;
 
 /**
@@ -47,10 +49,6 @@ export class BaseUpdater implements IParticleUpdater {
     // Update tick counter
     particle.tick++;
 
-    // Calculate opacity based on progress (ease-out fade)
-    const progress = particle.tick / particle.totalTicks;
-    particle.opacity = 1 - Math.pow(progress, 2);
-
     // Mark as destroyed when lifetime ends
     if (particle.tick >= particle.totalTicks) {
       particle.destroyed = true;
@@ -69,10 +67,10 @@ export class WobbleUpdater implements IParticleUpdater {
     // Wobble is initialized in Particle.create()
     if (!particle.wobble) {
       particle.wobble = {
-        angle: Math.random() * DOUBLE_PI,
-        angleSpeed: Math.random() * 0.1 + 0.05,
-        moveSpeed: -15 + Math.random() * 30,
-        distance: 25 + Math.random() * 15,
+        angle: getRandom() * DOUBLE_PI,
+        angleSpeed: getRandom() * 0.1 + 0.05,
+        moveSpeed: -15 + getRandom() * 30,
+        distance: 25 + getRandom() * 15,
       };
     }
   }
@@ -110,10 +108,10 @@ export class TiltUpdater implements IParticleUpdater {
   init(particle: IParticle): void {
     if (!particle.tilt) {
       particle.tilt = {
-        value: Math.random() * DOUBLE_PI,
-        sinDirection: Math.random() >= 0.5 ? 1 : -1,
-        cosDirection: Math.random() >= 0.5 ? 1 : -1,
-        speed: (Math.random() * 0.4 + 0.3) * (Math.random() > 0.5 ? 1 : -1),
+        value: getRandom() * DOUBLE_PI,
+        sinDirection: getRandom() >= 0.5 ? 1 : -1,
+        cosDirection: getRandom() >= 0.5 ? 1 : -1,
+        speed: (getRandom() * 0.4 + 0.3) * (getRandom() > 0.5 ? 1 : -1),
         enable: !particle.flat,
       };
     }
@@ -162,10 +160,10 @@ export class RollUpdater implements IParticleUpdater {
   init(particle: IParticle): void {
     if (!particle.roll) {
       particle.roll = {
-        angle: Math.random() * DOUBLE_PI,
-        speed: (15 + Math.random() * 10) / 60,
-        horizontal: Math.random() > 0.3,
-        vertical: Math.random() > 0.7,
+        angle: getRandom() * DOUBLE_PI,
+        speed: (15 + getRandom() * 10) / 60,
+        horizontal: getRandom() > 0.3,
+        vertical: getRandom() > 0.7,
         enable: !particle.flat,
       };
     }
@@ -229,8 +227,8 @@ export class RotateUpdater implements IParticleUpdater {
   init(particle: IParticle): void {
     if (!particle.rotate) {
       particle.rotate = {
-        angle: Math.random() * DOUBLE_PI,
-        speed: (Math.random() * 2 - 1) * 0.1,
+        angle: getRandom() * DOUBLE_PI,
+        speed: (getRandom() * 2 - 1) * 0.1,
         enable: !particle.flat,
       };
     }

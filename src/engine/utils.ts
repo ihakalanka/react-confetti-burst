@@ -4,27 +4,35 @@
  * Pure functions with no side effects for better testability
  * Following Single Responsibility Principle (SRP)
  * 
+ * Shared math utilities (clamp, lerp, degToRad, radToDeg, normalizeAngle)
+ * are imported from the root utils module to avoid duplication.
+ * 
  * @module engine/utils
  */
 
 import type { IDelta, IRangeValue } from './interfaces';
+import {
+  clamp,
+  lerp,
+  degToRad,
+  radToDeg,
+  normalizeAngle,
+  secureRandom,
+} from '../utils';
+
+// Re-export shared utilities so existing consumers keep working
+export { clamp, lerp, degToRad, radToDeg, normalizeAngle };
 
 // Constants
-const DOUBLE_PI = Math.PI * 2;
-const DEG_TO_RAD = Math.PI / 180;
 const BASE_FRAME_TIME = 1000 / 60; // 60fps baseline
 
 /**
- * Generate a random number between min and max (inclusive)
+ * Generate a random number between 0 and 1
  * Uses crypto for better randomness when available
+ * Delegates to secureRandom() from shared utils
  */
 export function getRandom(): number {
-  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
-    const array = new Uint32Array(1);
-    crypto.getRandomValues(array);
-    return array[0]! / (0xffffffff + 1);
-  }
-  return Math.random();
+  return secureRandom();
 }
 
 /**
@@ -35,45 +43,6 @@ export function getRangeValue(range: IRangeValue | number): number {
     return range;
   }
   return range.min + getRandom() * (range.max - range.min);
-}
-
-/**
- * Convert degrees to radians
- */
-export function degToRad(degrees: number): number {
-  return degrees * DEG_TO_RAD;
-}
-
-/**
- * Convert radians to degrees
- */
-export function radToDeg(radians: number): number {
-  return radians / DEG_TO_RAD;
-}
-
-/**
- * Clamp a value between min and max
- */
-export function clamp(value: number, min: number, max: number): number {
-  return Math.min(Math.max(value, min), max);
-}
-
-/**
- * Linear interpolation
- */
-export function lerp(start: number, end: number, t: number): number {
-  return start + (end - start) * clamp(t, 0, 1);
-}
-
-/**
- * Normalize angle to 0-2π range
- */
-export function normalizeAngle(angle: number): number {
-  let normalized = angle % DOUBLE_PI;
-  if (normalized < 0) {
-    normalized += DOUBLE_PI;
-  }
-  return normalized;
 }
 
 /**

@@ -4,7 +4,6 @@
 
 import type { BurstOrigin, EasingFunction } from './core';
 import type { SpawnArea } from './physics';
-import type { ParticleState } from './particles';
 import type { ConfettiBurstOptions, ExplosionHandle } from './config';
 
 /**
@@ -38,6 +37,10 @@ export interface ConfettiButtonProps extends React.ButtonHTMLAttributes<HTMLButt
   readonly confettiOptions?: ConfettiBurstOptions;
   readonly fireOnClick?: boolean;
   readonly children: React.ReactNode;
+  /** Offset the burst origin from the button center (in pixels) */
+  readonly originOffset?: { x?: number; y?: number };
+  /** Shorthand direction for the burst (e.g., 'up', 'down') */
+  readonly direction?: import('./core').BurstDirection;
 }
 
 /**

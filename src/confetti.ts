@@ -16,8 +16,10 @@
 import type {
   CanvasConfettiOptions,
   ConfettiCreateOptions,
+  ConfettiFunction,
 } from './types';
 import { Container, getEngine, prefersReducedMotion } from './engine';
+import { secureRandom } from './utils';
 
 /**
  * Container registry for managing instances
@@ -191,18 +193,24 @@ confetti.fireworks = async function(options: Partial<CanvasConfettiOptions> = {}
     ...options,
   };
   
-  await Promise.all([
-    confetti({
-      ...baseOptions,
-      angle: 60,
-      origin: { x: 0, y: 0.65 },
-    }),
-    confetti({
-      ...baseOptions,
-      angle: 120,
-      origin: { x: 1, y: 0.65 },
-    }),
-  ]);
+  const left = confetti({
+    ...baseOptions,
+    angle: 60,
+    origin: { x: 0, y: 0.65 },
+  });
+  const right = confetti({
+    ...baseOptions,
+    angle: 120,
+    origin: { x: 1, y: 0.65 },
+  });
+  
+  const promises: Promise<void>[] = [];
+  if (left) promises.push(left);
+  if (right) promises.push(right);
+  
+  if (promises.length > 0) {
+    await Promise.all(promises);
+  }
 };
 
 /**
@@ -214,11 +222,15 @@ confetti.fireworks = async function(options: Partial<CanvasConfettiOptions> = {}
  * confetti.schoolPride({ colors: ['#ff0000', '#ffffff'] });
  * ```
  */
-confetti.schoolPride = function(options: Partial<CanvasConfettiOptions> = {}): void {
+confetti.schoolPride = function(options: Partial<CanvasConfettiOptions> = {}): { cancel: () => void } {
   const end = Date.now() + 3000;
   const colors = options.colors ?? ['#bb0000', '#ffffff'];
+  let rafId: number | null = null;
+  let cancelled = false;
   
   function frame() {
+    if (cancelled) return;
+    
     confetti({
       particleCount: 2,
       angle: 60,
@@ -236,12 +248,22 @@ confetti.schoolPride = function(options: Partial<CanvasConfettiOptions> = {}): v
       ...options,
     });
     
-    if (Date.now() < end) {
-      requestAnimationFrame(frame);
+    if (Date.now() < end && !cancelled) {
+      rafId = requestAnimationFrame(frame);
     }
   }
   
   frame();
+  
+  return {
+    cancel() {
+      cancelled = true;
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+      }
+    }
+  };
 };
 
 /**
@@ -252,33 +274,47 @@ confetti.schoolPride = function(options: Partial<CanvasConfettiOptions> = {}): v
  * confetti.snow({ duration: 5000 });
  * ```
  */
-confetti.snow = function(options: { duration?: number } & Partial<CanvasConfettiOptions> = {}): void {
+confetti.snow = function(options: { duration?: number } & Partial<CanvasConfettiOptions> = {}): { cancel: () => void } {
   const { duration = 5000, ...confettiOptions } = options;
   const end = Date.now() + duration;
+  let rafId: number | null = null;
+  let cancelled = false;
   
   function frame() {
+    if (cancelled) return;
+    
     confetti({
       particleCount: 1,
       startVelocity: 0,
       ticks: 300,
       gravity: 0.3,
       origin: {
-        x: Math.random(),
+        x: secureRandom(),
         y: 0,
       },
       colors: ['#ffffff', '#f0f8ff', '#e6f3ff'],
       shapes: ['circle'],
-      scalar: 0.8 + Math.random() * 0.4,
-      drift: Math.random() - 0.5,
+      scalar: 0.8 + secureRandom() * 0.4,
+      drift: secureRandom() - 0.5,
       ...confettiOptions,
     });
     
-    if (Date.now() < end) {
-      requestAnimationFrame(frame);
+    if (Date.now() < end && !cancelled) {
+      rafId = requestAnimationFrame(frame);
     }
   }
   
   frame();
+  
+  return {
+    cancel() {
+      cancelled = true;
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+      }
+    }
+  };
 };
 
 /**
@@ -309,7 +345,9 @@ confetti.burst = function(
  */
 confetti.destroyAll = function(): void {
   for (const container of containers.values()) {
-    container.destroy();
+    if (!container.destroyed) {
+      container.destroy();
+    }
   }
   containers.clear();
   getEngine().destroyAll();
@@ -323,5 +361,5 @@ confetti.getShapes = function(): string[] {
   return ['square', 'circle', 'star', 'triangle', 'rectangle', 'diamond', 'heart', 'hexagon'];
 };
 
-// Make confetti the default export
-export default confetti;
+// Make confetti the default export, typed with all attached methods
+export default confetti as ConfettiFunction;

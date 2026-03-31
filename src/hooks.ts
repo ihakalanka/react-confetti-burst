@@ -270,8 +270,8 @@ export function useConfettiCenter(options?: ConfettiBurstOptions): {
 
   const fire = useCallback(() => {
     const centerOrigin: BurstOrigin = {
-      x: window.innerWidth / 2,
-      y: window.innerHeight / 2,
+      x: typeof window !== 'undefined' ? window.innerWidth / 2 : 0,
+      y: typeof window !== 'undefined' ? window.innerHeight / 2 : 0,
     };
     return baseFire(centerOrigin, {
       ...options,
